@@ -4,14 +4,31 @@
 
 #include <unindent/unindent.hpp>
 
-TEST_CASE("unindent", "[unindent]") {
+TEST_CASE("unindent#1", "[unindent]") {
   using namespace std::literals;
-  using namespace mitama::unindent;
+  using namespace mitama::unindent::literals;
   constexpr std::string_view unindented_str = R"(
     def foo():
       print("Hello")
       print("World")
   )"_i;
 
-  REQUIRE(unindented_str == "def foo():\n  print(\"Hello\")\n  print(\"World\")");
+  static_assert(unindented_str ==
+                "def foo():\n  print(\"Hello\")\n  print(\"World\")"sv);
+}
+
+TEST_CASE("folded#1", "[folded]") {
+  using namespace std::literals;
+  using namespace mitama::unindent::literals;
+  constexpr std::string_view folded_str = R"(
+    This is the first line.
+    This line is appended to the first.
+
+    This line follows a line break.
+      This line ends up indented by two spaces.
+  )"_i1;
+
+  REQUIRE(
+      folded_str ==
+      "This is the first line. This line is appended to the first.\nThis line follows a line break.   This line ends up indented by two spaces."sv);
 }

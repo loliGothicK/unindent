@@ -1,0 +1,99 @@
+name: Full Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ubuntu:
+    runs-on: ${{ matrix.compiler.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler:
+          - cc: clang
+            cxx: clang++
+            ver: 16
+            os: ubuntu-22.04
+          - cc: clang
+            cxx: clang++
+            ver: 17
+            os: ubuntu-24.04
+          - cc: clang
+            cxx: clang++
+            ver: 18
+            os: ubuntu-24.04
+          - cc: clang
+            cxx: clang++
+            ver: 19
+            os: ubuntu-24.04
+          - cc: gcc
+            cxx: g++
+            ver: 12
+            os: ubuntu-24.04
+          - cc: gcc
+            cxx: g++
+            ver: 13
+            os: ubuntu-24.04
+          - cc: gcc
+            cxx: g++
+            ver: 14
+            os: ubuntu-24.04
+    env:
+      CC: ${{ matrix.compiler.cc }}-${{ matrix.compiler.ver }}
+      CXX: ${{ matrix.compiler.cxx }}-${{ matrix.compiler.ver }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install CMake
+        run: |
+          sudo apt-get -qq update
+          sudo apt-get install -y -qq pkg-config cmake
+
+      - name: Install Clang
+        if: startsWith(matrix.compiler.cxx, 'clang')
+        run: |
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x ./llvm.sh
+          sudo ./llvm.sh ${{ matrix.compiler.ver }}
+
+      - name: Install GCC
+        if: matrix.compiler.cxx == 'g++' && matrix.compiler.ver == 14
+        run: sudo apt update && sudo apt install -y gcc-14
+
+      - name: Install Catch2
+        run: vcpkg install catch2
+
+      - name: Build and test
+        run: |
+          mkdir build && cd build
+          cmake .. \
+            -DBUILD_TESTING=ON \
+            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+          make
+          make test
+
+  macos:
+    runs-on: macos-${{ matrix.osver }}
+    strategy:
+      fail-fast: false
+      matrix:
+        osver: [13]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install CMake
+        run: brew install pkg-config cmake
+
+      - name: Install Catch2
+        run: vcpkg install catch2
+
+      - name: Build and test
+        run: |
+          mkdir build && cd build
+          cmake .. \
+            -DBUILD_TESTING=ON \
+            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+          make
+          make test
