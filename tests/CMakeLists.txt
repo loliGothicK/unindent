@@ -2,9 +2,11 @@ find_package(Catch2 3 CONFIG REQUIRED)
 add_executable(tests test.cpp regressions.cpp)
 target_compile_features(tests PRIVATE cxx_std_20)
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+if(MSVC)
+    target_compile_options(tests PRIVATE /W4 /permissive- /Zc:twoPhase-)
+elseif(CMAKE_COMPILER_IS_GNUCC OR CMAKE_COMPILER_IS_GNUCXX)
     target_compile_options(tests PRIVATE -Wall -Wextra -ftemplate-backtrace-limit=0)
-else()
+else() # Clang
     target_compile_options(tests PRIVATE -Wall -Wextra -pedantic-errors -ftemplate-backtrace-limit=0)
 endif()
 
