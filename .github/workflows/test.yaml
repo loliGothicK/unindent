@@ -105,17 +105,22 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        osver: [13]
+        osver: [13, 14, 15]
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Catch2
-        run: vcpkg install catch2
+      - name: Install vcpkg
+        run: |
+          cd ~
+          git clone https://github.com/microsoft/vcpkg
+          cd vcpkg
+          ./bootstrap-vcpkg.sh
+          ./vcpkg install catch2
 
       - name: Build and test
         run: |
           cmake -S . -B build \
             -DBUILD_TESTING=ON \
-            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+            -DCMAKE_TOOLCHAIN_FILE="~/vcpkg/scripts/buildsystems/vcpkg.cmake"
           cmake --build build
           cd build && ctest

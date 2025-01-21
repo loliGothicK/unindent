@@ -52,10 +52,12 @@ int main() {
 }
 ```
 
-## Support
+## Supported OS/Compiler
 
-- Compilers
-  - GCC: 12 or higher
-  - Clang: 16 or higher
-  - MSVC: Visual Studio 2022
-
+- Linux
+  - GCC: 12, 13, 14
+  - Clang: 16, 17, 18, 19
+- Apple
+  - Clang: 15
+- Windows
+  - MSVC: Visual Studio 2019, Visual Studio 2022
