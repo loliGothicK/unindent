@@ -36,8 +36,8 @@ inline std::ostream &operator<<(std::ostream &os, fixed_string<CharT, N> fs) {
 } // namespace details
 
 namespace details {
-template <typename CharT, std::size_t N>
-inline consteval auto to_unindented_impl(std::array<CharT, N> raw) {
+inline constexpr auto to_unindented =
+    []<typename CharT, std::size_t N>(std::array<CharT, N> raw) consteval {
   namespace views = std::ranges::views;
   using namespace std::literals;
   using std::size_t;
@@ -91,10 +91,6 @@ inline consteval auto to_unindented_impl(std::array<CharT, N> raw) {
   }
   buffer[index - 1] = '\0';
   return buffer;
-}
-inline constexpr auto to_unindented =
-    []<typename CharT, std::size_t N>(std::array<CharT, N> raw) consteval {
-      return to_unindented_impl(raw);
     };
 
 inline constexpr auto to_folded =
@@ -107,7 +103,7 @@ inline constexpr auto to_folded =
       size_t index = 0;
       size_t returns = 0;
 
-      for (auto c : to_unindented_impl(raw)) {
+      for (auto c : to_unindented(raw)) {
         if (is_return(c)) {
           returns++;
         } else {
