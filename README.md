@@ -58,6 +58,8 @@ int main() {
   - GCC: 12, 13, 14
   - Clang: 16, 17, 18, 19
 - Apple
-  - Clang: 15
+  - macOS 13 with clang
+  - macOS 14 with clang
+  - macOS 15 with clang
 - Windows
-  - MSVC: Visual Studio 2019, Visual Studio 2022
+  - MSVC: Visual Studio 2022
