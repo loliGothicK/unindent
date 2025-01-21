@@ -14,10 +14,6 @@ jobs:
         compiler:
           - cc: clang
             cxx: clang++
-            ver: 16
-            os: ubuntu-22.04
-          - cc: clang
-            cxx: clang++
             ver: 17
             os: ubuntu-24.04
           - cc: clang
@@ -101,11 +97,15 @@ jobs:
           cd build && ctest
 
   macos:
-    runs-on: macos-${{ matrix.osver }}
+    runs-on: macos-${{ matrix.env.osver }}
     strategy:
       fail-fast: false
       matrix:
-        osver: [13, 14, 15]
+        env:
+          - cxx: clang++
+            osver: 15
+          - cxx: "$(brew --prefix llvm@18)/bin/clang++"
+            osver: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -121,6 +121,7 @@ jobs:
         run: |
           cmake -S . -B build \
             -DBUILD_TESTING=ON \
+            -DCMAKE_CXX_COMPILER=${{ matrix.env.cxx }} \
             -DCMAKE_TOOLCHAIN_FILE="~/vcpkg/scripts/buildsystems/vcpkg.cmake"
           cmake --build build
           cd build && ctest

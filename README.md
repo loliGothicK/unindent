@@ -60,10 +60,9 @@ int main() {
 
 - Linux
   - GCC: 12, 13, 14
-  - Clang: 16, 17, 18, 19
+  - Clang: 17, 18, 19
 - Apple
-  - macOS 13 with clang
-  - macOS 14 with clang
-  - macOS 15 with clang
+  - Apple Clang 15.0.0 (macOS 15)
+  - Apple Clang 18.1.8 (macOS 15)
 - Windows
   - MSVC: Visual Studio 2022
