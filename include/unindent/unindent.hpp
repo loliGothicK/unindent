@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <concepts>
 #include <cstddef>
 #include <iostream>
 #include <limits>
@@ -13,7 +14,6 @@
 #include <utility>
 
 namespace mitama::unindent {
-
 namespace details {
 // fixed_string (structural type)
 template <class CharT, std::size_t N> struct fixed_string {
@@ -36,8 +36,8 @@ inline std::ostream &operator<<(std::ostream &os, fixed_string<CharT, N> fs) {
 } // namespace details
 
 namespace details {
-template <class CharT, std::size_t N>
-consteval auto to_unindented(std::array<CharT, N> raw) {
+template <typename CharT, std::size_t N>
+inline consteval auto to_unindented_impl(std::array<CharT, N> raw) {
   namespace views = std::ranges::views;
   using namespace std::literals;
   using std::size_t;
@@ -75,14 +75,15 @@ consteval auto to_unindented(std::array<CharT, N> raw) {
     return buffer;
   }
 
-  for (auto line : lines | views::transform([min_indent](auto line) {
-                     std::basic_string_view<CharT> line_view{line.begin(),
-                                                             line.end()};
-                     if (line_view.size() < min_indent)
-                       return line_view;
-                     line_view.remove_prefix(min_indent);
-                     return line_view;
-                   })) {
+  auto fn = [min_indent](auto line) {
+    std::basic_string_view<CharT> line_view{line.begin(), line.end()};
+    if (line_view.size() < min_indent)
+      return line_view;
+    line_view.remove_prefix(min_indent);
+    return line_view;
+  };
+
+  for (auto line : lines | views::transform(fn)) {
     for (auto c : line) {
       buffer[index++] = c;
     }
@@ -91,104 +92,170 @@ consteval auto to_unindented(std::array<CharT, N> raw) {
   buffer[index - 1] = '\0';
   return buffer;
 }
+inline constexpr auto to_unindented =
+    []<typename CharT, std::size_t N>(std::array<CharT, N> raw) consteval {
+      return to_unindented_impl(raw);
+    };
 
-template <class CharT, std::size_t N>
-consteval auto to_folded(std::array<CharT, N> raw) {
-  namespace views = std::ranges::views;
+inline constexpr auto to_folded =
+    []<typename CharT, std::size_t N>(std::array<CharT, N> raw) consteval {
+      namespace views = std::ranges::views;
 
-  auto is_return = [](CharT c) { return c == '\n'; };
+      auto is_return = [](CharT c) { return c == '\n'; };
 
-  std::array<CharT, N> buffer = {};
-  size_t index = 0;
-  size_t returns = 0;
+      std::array<CharT, N> buffer = {};
+      size_t index = 0;
+      size_t returns = 0;
 
-  for (auto c : to_unindented(raw)) {
-    if (is_return(c)) {
-      returns++;
-    } else {
-      if (returns > 1) {
-        buffer[index++] = '\n';
-      } else if (returns == 1) {
-        buffer[index++] = ' ';
+      for (auto c : to_unindented_impl(raw)) {
+        if (is_return(c)) {
+          returns++;
+        } else {
+          if (returns > 1) {
+            buffer[index++] = '\n';
+          } else if (returns == 1) {
+            buffer[index++] = ' ';
+          }
+          buffer[index++] = c;
+          returns = 0;
+        }
       }
-      buffer[index++] = c;
-      returns = 0;
-    }
-  }
 
-  return buffer;
-}
+      return buffer;
+    };
 } // namespace details
 
-// unindented string (value type)
-template <details::fixed_string Lit> class unindented {
+// edited string (value type)
+template <details::fixed_string Lit, auto Editor>
+  requires requires {
+    {
+      Editor(Lit.s)
+    } -> std::same_as<
+        std::array<typename decltype(Lit)::char_type, decltype(Lit)::size>>;
+  }
+class edited {
 public:
+  // type members
   using char_type = decltype(Lit)::char_type;
 
 private:
   static constexpr std::array<char_type, decltype(Lit)::size> value_ =
-      details::to_unindented(Lit.s);
+      Editor(Lit.s);
 
 public:
-  template <auto S>
-    requires std::same_as<char_type, typename unindented<S>::char_type>
-  constexpr std::strong_ordering operator<=>(unindented<S>) const noexcept {
-    return unindented::value_ <=> unindented<S>::value_;
+  // member functions
+
+  // #region comparison operators
+  constexpr inline friend std::strong_ordering
+  operator<=>(std::basic_string_view<char_type> lhs, edited) noexcept {
+    return lhs <=> edited::value();
   }
 
+  constexpr inline friend bool operator==(std::basic_string_view<char_type> lhs,
+                                          edited) noexcept {
+    return lhs <=> edited::value() == std::strong_ordering::equal;
+  }
+
+  constexpr inline friend bool operator<(std::basic_string_view<char_type> lhs,
+                                         edited) noexcept {
+    return lhs <=> edited::value() == std::strong_ordering::less;
+  }
+
+  constexpr inline friend bool operator>(std::basic_string_view<char_type> lhs,
+                                         edited) noexcept {
+    return lhs <=> edited::value() == std::strong_ordering::greater;
+  }
+
+  constexpr inline friend std::strong_ordering
+  operator<=>(edited, std::basic_string_view<char_type> rhs) noexcept {
+    return edited::value() <=> rhs;
+  }
+
+  constexpr inline friend bool
+  operator==(edited, std::basic_string_view<char_type> rhs) noexcept {
+    return edited::value() <=> rhs == std::strong_ordering::equal;
+  }
+
+  constexpr inline friend bool
+  operator<(edited, std::basic_string_view<char_type> rhs) noexcept {
+    return edited::value() <=> rhs == std::strong_ordering::less;
+  }
+
+  constexpr inline friend bool
+  operator>(edited, std::basic_string_view<char_type> rhs) noexcept {
+    return edited::value() <=> rhs == std::strong_ordering::greater;
+  }
+  // #endregion
+
+  // iterator support
+  constexpr auto begin() { return edited::value().begin(); }
+  constexpr auto end() { return edited::value().end(); }
+  constexpr auto cbegin() const { return edited::value().cbegin(); }
+  constexpr auto cend() const { return edited::value().cend(); }
+  constexpr auto rbegin() { return edited::value().rbegin(); }
+  constexpr auto rend() { return edited::value().rend(); }
+  constexpr auto crbegin() const { return edited::value().crbegin(); }
+  constexpr auto crend() const { return edited::value().crend(); }
+
+  // conversion operator
   constexpr operator std::basic_string_view<char_type>() const {
     return std::basic_string_view<char_type>(value_.data());
   }
+
+  // static member function
+  // access the value of the edited string
   static constexpr std::basic_string_view<char_type> value() {
     return std::basic_string_view<char_type>(value_.data());
   }
 };
 
-template <details::fixed_string S>
-inline std::ostream &operator<<(std::ostream &os, unindented<S>) {
-  return os << unindented<S>::value();
+namespace details {
+template <class> struct is_edited_strings : std::false_type {};
+template <auto S, auto _>
+struct is_edited_strings<edited<S, _>> : std::true_type {};
+
+template <class T>
+concept edited_strings = is_edited_strings<T>::value;
+} // namespace details
+
+template <details::edited_strings S1, details::edited_strings S2>
+  requires std::same_as<typename S1::char_type, typename S2::char_type>
+constexpr inline std::strong_ordering operator<=>(S1, S2) noexcept {
+  return S1::value() <=> S2::value();
 }
 
-// folded string (value type)
-template <details::fixed_string Lit> class folded {
-public:
-  using char_type = decltype(Lit)::char_type;
-
-private:
-  static constexpr std::array<char_type, decltype(Lit)::size> value_ =
-      details::to_folded(Lit.s);
-
-public:
-  template <auto S>
-    requires std::same_as<char_type, typename folded<S>::char_type>
-  constexpr std::strong_ordering operator<=>(folded<S>) const noexcept {
-    return folded::value_ <=> folded<S>::value_;
-  }
-
-  constexpr operator std::basic_string_view<char_type>() const {
-    return std::basic_string_view<char_type>(value_.data());
-  }
-  static constexpr std::basic_string_view<char_type> value() {
-    return std::basic_string_view<char_type>(value_.data());
-  }
-};
-
-template <details::fixed_string S>
-inline std::ostream &operator<<(std::ostream &os, folded<S>) {
-  return os << folded<S>::value();
+template <details::edited_strings S1, details::edited_strings S2>
+  requires std::same_as<typename S1::char_type, typename S2::char_type>
+constexpr inline bool operator==(S1, S2) noexcept {
+  return S1::value() <=> S2::value() == std::strong_ordering::equal;
 }
 
+template <details::edited_strings S1, details::edited_strings S2>
+  requires std::same_as<typename S1::char_type, typename S2::char_type>
+constexpr inline bool operator<(S1, S2) noexcept {
+  return S1::value() <=> S2::value() == std::strong_ordering::less;
+}
+
+template <details::edited_strings S1, details::edited_strings S2>
+  requires std::same_as<typename S1::char_type, typename S2::char_type>
+constexpr inline bool operator>(S1, S2) noexcept {
+  return S1::value() <=> S2::value() == std::strong_ordering::greater;
+}
+
+inline std::ostream &operator<<(std::ostream &os,
+                                details::edited_strings auto _) {
+  return os << decltype(_)::value();
+}
 } // namespace mitama::unindent
 
 namespace mitama::unindent::inline literals {
+template <details::fixed_string S>
+inline constexpr edited<S, details::to_unindented> operator""_i() {
+  return {};
+}
 
 template <details::fixed_string S>
-inline constexpr unindented<S> operator""_i() {
+inline constexpr edited<S, details::to_folded> operator""_i1() {
   return {};
 }
-
-template <details::fixed_string S> inline constexpr folded<S> operator""_i1() {
-  return {};
-}
-
 } // namespace mitama::unindent::inline literals

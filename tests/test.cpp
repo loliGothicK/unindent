@@ -28,7 +28,30 @@ TEST_CASE("folded#1", "[folded]") {
       This line ends up indented by two spaces.
   )"_i1;
 
-  REQUIRE(
+  static_assert(
       folded_str ==
       "This is the first line. This line is appended to the first.\nThis line follows a line break.   This line ends up indented by two spaces."sv);
+}
+
+// comprison between unindented and strings
+TEST_CASE("comprisons#2", "[unindented]") {
+  using namespace std::literals;
+  using namespace mitama::unindent::literals;
+  constexpr auto unindented_str = R"(
+    def foo():
+      print("Hello")
+      print("World")
+  )"_i;
+
+  static_assert(unindented_str ==
+                "def foo():\n  print(\"Hello\")\n  print(\"World\")"_i);
+  static_assert(unindented_str ==
+                "def foo():\n  print(\"Hello\")\n  print(\"World\")"sv);
+  static_assert(unindented_str ==
+                "def foo():\n  print(\"Hello\")\n  print(\"World\")");
+
+  static_assert("def foo():\n  print(\"Hello\")\n  print(\"World\")"sv ==
+                unindented_str);
+  static_assert("def foo():\n  print(\"Hello\")\n  print(\"World\")" ==
+                unindented_str);
 }
