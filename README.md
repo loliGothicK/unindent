@@ -2,6 +2,10 @@
 
 This is a small C++20 library that provides a simple way to make indent-adjusted multiline raw string literals at compile time.
 
+## Test Status
+
+[![Full Test](https://github.com/LoliGothick/unindent/actions/workflows/test.yaml/badge.svg)](https://github.com/LoliGothick/unindent/actions/workflows/test.yaml)
+
 ## Synopsis
 
 Unindent provides two new user-defined literals for indented strings: `"..."_i` and `"..."_i1`:
