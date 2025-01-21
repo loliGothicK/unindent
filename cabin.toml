@@ -1,5 +1,5 @@
 [package]
 name = "unindent"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Mitama <loligothick@gmail.com>"]
 edition = "20"

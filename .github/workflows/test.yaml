@@ -74,6 +74,34 @@ jobs:
           make
           make test
 
+  windows:
+    runs-on: windows-${{ matrix.config.osver }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - vsver: "Visual Studio 17 2022"
+            osver: 2025
+          - vsver: "Visual Studio 17 2022"
+            osver: 2022
+          - vsver: "Visual Studio 17 2022"
+            osver: 2019
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Catch2
+        run: vcpkg install catch2
+
+      - name: Build and test
+        run: |
+          mkdir build && cd build
+          cmake .. `
+            -G ${{ matrix.config.vsver }} -A x64 `
+            -DBUILD_TESTING=ON `
+            -DCMAKE_TOOLCHAIN_FILE="$($env:VCPKG_INSTALLATION_ROOT)/scripts/buildsystems/vcpkg.cmake"
+          make
+          make test
+
   macos:
     runs-on: macos-${{ matrix.osver }}
     strategy:
@@ -82,9 +110,6 @@ jobs:
         osver: [13]
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install CMake
-        run: brew install pkg-config cmake
 
       - name: Install Catch2
         run: vcpkg install catch2

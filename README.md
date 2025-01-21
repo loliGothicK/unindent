@@ -51,3 +51,11 @@ int main() {
       "This is the first line. This line is appended to the first.\nThis line follows a line break.   This line ends up indented by two spaces."sv);
 }
 ```
+
+## Support
+
+- Compilers
+  - GCC: 12 or higher
+  - Clang: 16 or higher
+  - MSVC: Visual Studio 2022
+
