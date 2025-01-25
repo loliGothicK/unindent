@@ -125,29 +125,29 @@ inline constexpr auto to_folded =
     };
 } // namespace details
 
-// edited string (value type)
-// This class is a value type that represents a string that has been edited by `Editor`.
-// 
-// template parameters:
-// `Lit`: The non-type template parameter, a `fixed_string` representing the original string.
-// `Editor`: The non-type template parameter, a function object specifying how to edit the original string.
+// This is a class representing a string that has been edited by `Editor`.
 //
-// [Note: `Editor` is a CPO (Customization Point Object) that is a function object.
-//  The function object must be a immidiaate function object that satisfies the following requirements:
+// template parameters:
+// - `Lit`: The non-type template parameter, a `fixed_string` representing the
+// original string.
+// - `Editor`: The non-type template parameter, a function object specifying how
+// to edit the original string.
+//
+// [Note: `Editor` is a CPO (Customization Point Object) that is a function
+// object.
+//  The function object must be a immidiate function object that satisfies the
+//  following requirements:
 //  ```
 //  requires {
-//    {
-//      Editor(Lit.s)
-//    } -> std::same_as<std::array<typename decltype(Lit)::char_type, decltype(Lit)::size>>;
+//    { Editor(Lit.s) } -> std::convertible_to<decltype(Lit.s)>;
 //  }
 //  ```
+//  `Lit.s` is a `const std::array` of `CharT` that represents the original
+//  string.
 // — end note]
 template <details::fixed_string Lit, auto Editor>
   requires requires {
-    {
-      Editor(Lit.s)
-    } -> std::same_as<
-        std::array<typename decltype(Lit)::char_type, decltype(Lit)::size>>;
+    { Editor(Lit.s) } -> std::convertible_to<decltype(Lit.s)>;
   }
 class edited {
 public:
@@ -155,8 +155,7 @@ public:
   using char_type = decltype(Lit)::char_type;
 
 private:
-  static constexpr std::array<char_type, decltype(Lit)::size> value_ =
-      Editor(Lit.s);
+  static constexpr decltype(Lit.s) value_ = Editor(Lit.s);
 
 public:
   // member functions
@@ -275,7 +274,7 @@ namespace mitama::unindent::inline literals {
 //      print("Hello")
 //      print("World")
 //  )"_i;
-// 
+//
 //  std::cout << unindented_str;
 //  // Output:
 //  // def foo():
