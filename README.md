@@ -59,7 +59,7 @@ int main() {
 ## Supported OS/Compiler
 
 - Linux
-  - GCC: 12, 13, 14
+  - GCC: 13, 14
   - Clang: 17, 18, 19
 - Apple
   - Apple Clang 15.0.0 (macOS 15)
