@@ -8,7 +8,8 @@ REPOSITORY_ROOT = { script = [ "git rev-parse --show-superproject-working-tree -
 [tasks.test]
 script_runner = "@shell"
 script = [
-    "cd build",
-    "make",
-    "make test",
+    "cd $REPOSITORY_ROOT",
+    "cmake --build build",
+    "echo 'Running tests...'",
+    "./build/tests/tests",
 ]
