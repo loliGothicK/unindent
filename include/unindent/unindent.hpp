@@ -199,6 +199,19 @@ inline constexpr auto to_folded =
 //  when converting `edited_string` to `basic_string_view` (for more detail,
 //  see:
 //  https://en.cppreference.com/w/cpp/string/basic_string_view/basic_string_view).
+//
+//  To make your own literal operator, you can use `edited_string` as follows:
+//  [Example:
+//    ```
+//    template <mitama::unindent::fixed_string S>
+//    inline constexpr mitama::unindent::edited_string<S, {Your CPO}>
+//    operator""_xxx() {
+//      return {};
+//    }
+//    ```
+//  - end example]
+//
+//  See the `fixed_string` documentation for detailed principles.
 // — end note]
 template <fixed_string Lit, auto Editor>
   requires requires {
@@ -258,14 +271,24 @@ public:
   // #endregion
 
   // iterator support
-  constexpr auto begin() const noexcept { return edited_string::value().begin(); }
+  constexpr auto begin() const noexcept {
+    return edited_string::value().begin();
+  }
   constexpr auto end() const noexcept { return edited_string::value().end(); }
-  constexpr auto cbegin() const noexcept { return edited_string::value().cbegin(); }
+  constexpr auto cbegin() const noexcept {
+    return edited_string::value().cbegin();
+  }
   constexpr auto cend() const noexcept { return edited_string::value().cend(); }
-  constexpr auto rbegin() const noexcept { return edited_string::value().rbegin(); }
+  constexpr auto rbegin() const noexcept {
+    return edited_string::value().rbegin();
+  }
   constexpr auto rend() const noexcept { return edited_string::value().rend(); }
-  constexpr auto crbegin() const noexcept { return edited_string::value().crbegin(); }
-  constexpr auto crend() const noexcept { return edited_string::value().crend(); }
+  constexpr auto crbegin() const noexcept {
+    return edited_string::value().crbegin();
+  }
+  constexpr auto crend() const noexcept {
+    return edited_string::value().crend();
+  }
 
   // conversion operator
   constexpr operator std::basic_string_view<char_type>() const noexcept {
