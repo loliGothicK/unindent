@@ -16,8 +16,56 @@
 #include <utility>
 
 namespace mitama::unindent {
-namespace details {
 // fixed_string (structural type)
+// This is a class representing a string literal.
+//
+// template parameters:
+// - `CharT`: a character type of the string literal.
+// - `N`: The non-type template parameter, the size of the string literal.
+//
+// [Note 1: `fixed_string` is initialized with a string literals.
+// In addition, due to CTAD, `CharT` and `N` is automatically deduced.
+// [Example:
+//   ```
+//   constexpr fixed_string fs = "abc"; // fixed_string<char, 4>
+//   ```
+// — end example]
+//
+// ref:
+// https://en.cppreference.com/w/cpp/language/class_template_argument_deduction
+// — end note]
+//
+// [Note 2: Since C++20, `fixed_string` can be used as non-type template
+// arguments with CTAD.
+//
+// [Example:
+//   ```
+//   template <fixed_string S>
+//   struct foo {};
+//
+//   foo<"abc"> f; // foo<fixed_string<char, 4>{"abc"}>
+//   ```
+// — end example]
+//
+// ref: https://timsong-cpp.github.io/cppwp/n4861/temp.arg.nontype#1
+// — end note]
+//
+// [Note 3: Since C++20, `fixed_string` can be used as a template parameter
+// of a user-defined literals.
+//
+// [Example:
+//   ```
+//   template <fixed_string S>
+//   inline constexpr auto operator""_fixed() {
+//     return S;
+//   }
+//
+//   "abc"_fixed; // fixed_string<char, 4>{"abc"}
+//   ```
+// — end example]
+//
+// ref: https://timsong-cpp.github.io/cppwp/n4861/lex.ext#5
+// -- end Note]
 template <class CharT, std::size_t N> struct fixed_string {
   static constexpr std::size_t size = N;
   using char_type = CharT;
@@ -35,7 +83,6 @@ template <class CharT, std::size_t N>
 inline std::ostream &operator<<(std::ostream &os, fixed_string<CharT, N> fs) {
   return os << fs.s;
 }
-} // namespace details
 
 namespace details {
 // editor function for unindented string
@@ -136,87 +183,89 @@ inline constexpr auto to_folded =
 // to edit the original string.
 //
 // [Note: `Editor` is a CPO (Customization Point Object) that is a function
-// object.
-//  The function object must be a immidiate function object that satisfies the
-//  following requirements:
+// object. The function object must be a immidiate function object that
+// satisfies the following requirements:
+//
 //  ```
 //  requires {
-//    { Editor(Lit.s) } -> std::convertible_to<decltype(Lit.s)>;
+//    { std::invoke(Editor, Lit.s) } -> std::convertible_to<decltype(Lit.s)>;
 //  }
 //  ```
+//
 //  `Lit.s` is a `const std::array` of `CharT` that represents the original
 //  string.
 //  Note that the return value must be null terminated in order to pass the
 //  `std::array::data()` to `basic_string_view::basic_string_view(const CharT*)`
-//  when converting `edited` to `basic_string_view` (for more detail, see:
+//  when converting `edited_string` to `basic_string_view` (for more detail,
+//  see:
 //  https://en.cppreference.com/w/cpp/string/basic_string_view/basic_string_view).
 // — end note]
-template <details::fixed_string Lit, auto Editor>
+template <fixed_string Lit, auto Editor>
   requires requires {
-    { std::invoke(Editor, Lit.s) } -> std::convertible_to<decltype(Lit.s)>;
+    { Editor(Lit.s) } -> std::convertible_to<decltype(Lit.s)>;
   }
-class edited {
+class edited_string {
 public:
   // type members
   using char_type = decltype(Lit)::char_type;
 
 private:
-  static constexpr decltype(Lit.s) value_ = std::invoke(Editor, Lit.s);
+  static constexpr decltype(Lit.s) value_ = Editor(Lit.s);
 
 public:
   // member functions
 
   // #region comparison operators
   constexpr inline friend std::strong_ordering
-  operator<=>(std::basic_string_view<char_type> lhs, edited) noexcept {
-    return lhs <=> edited::value();
+  operator<=>(std::basic_string_view<char_type> lhs, edited_string) noexcept {
+    return lhs <=> edited_string::value();
   }
 
   constexpr inline friend bool operator==(std::basic_string_view<char_type> lhs,
-                                          edited) noexcept {
-    return lhs <=> edited::value() == std::strong_ordering::equal;
+                                          edited_string) noexcept {
+    return lhs <=> edited_string::value() == std::strong_ordering::equal;
   }
 
   constexpr inline friend bool operator<(std::basic_string_view<char_type> lhs,
-                                         edited) noexcept {
-    return lhs <=> edited::value() == std::strong_ordering::less;
+                                         edited_string) noexcept {
+    return lhs <=> edited_string::value() == std::strong_ordering::less;
   }
 
   constexpr inline friend bool operator>(std::basic_string_view<char_type> lhs,
-                                         edited) noexcept {
-    return lhs <=> edited::value() == std::strong_ordering::greater;
+                                         edited_string) noexcept {
+    return lhs <=> edited_string::value() == std::strong_ordering::greater;
   }
 
   constexpr inline friend std::strong_ordering
-  operator<=>(edited, std::basic_string_view<char_type> rhs) noexcept {
-    return edited::value() <=> rhs;
+  operator<=>(edited_string, std::basic_string_view<char_type> rhs) noexcept {
+    return edited_string::value() <=> rhs;
   }
 
   constexpr inline friend bool
-  operator==(edited, std::basic_string_view<char_type> rhs) noexcept {
-    return edited::value() <=> rhs == std::strong_ordering::equal;
+  operator==(edited_string, std::basic_string_view<char_type> rhs) noexcept {
+    return edited_string::value() <=> rhs == std::strong_ordering::equal;
   }
 
   constexpr inline friend bool
-  operator<(edited, std::basic_string_view<char_type> rhs) noexcept {
-    return edited::value() <=> rhs == std::strong_ordering::less;
+  operator<(edited_string, std::basic_string_view<char_type> rhs) noexcept {
+    return edited_string::value() <=> rhs == std::strong_ordering::less;
   }
 
   constexpr inline friend bool
-  operator>(edited, std::basic_string_view<char_type> rhs) noexcept {
-    return edited::value() <=> rhs == std::strong_ordering::greater;
+  operator>(edited_string, std::basic_string_view<char_type> rhs) noexcept {
+    return edited_string::value() <=> rhs == std::strong_ordering::greater;
   }
   // #endregion
 
   // iterator support
-  constexpr auto begin() { return edited::value().begin(); }
-  constexpr auto end() { return edited::value().end(); }
-  constexpr auto cbegin() const { return edited::value().cbegin(); }
-  constexpr auto cend() const { return edited::value().cend(); }
-  constexpr auto rbegin() { return edited::value().rbegin(); }
-  constexpr auto rend() { return edited::value().rend(); }
-  constexpr auto crbegin() const { return edited::value().crbegin(); }
-  constexpr auto crend() const { return edited::value().crend(); }
+  constexpr auto begin() { return edited_string::value().begin(); }
+  constexpr auto end() { return edited_string::value().end(); }
+  constexpr auto cbegin() const { return edited_string::value().cbegin(); }
+  constexpr auto cend() const { return edited_string::value().cend(); }
+  constexpr auto rbegin() { return edited_string::value().rbegin(); }
+  constexpr auto rend() { return edited_string::value().rend(); }
+  constexpr auto crbegin() const { return edited_string::value().crbegin(); }
+  constexpr auto crend() const { return edited_string::value().crend(); }
 
   // conversion operator
   constexpr operator std::basic_string_view<char_type>() const noexcept {
@@ -224,7 +273,7 @@ public:
   }
 
   // static member function
-  // access the value of the edited string
+  // access the value of the edited_string string
   static constexpr std::basic_string_view<char_type> value() noexcept {
     return std::basic_string_view<char_type>(value_.data());
   }
@@ -238,7 +287,7 @@ public:
 namespace details {
 template <class> struct is_edited_strings : std::false_type {};
 template <auto S, auto _>
-struct is_edited_strings<edited<S, _>> : std::true_type {};
+struct is_edited_strings<edited_string<S, _>> : std::true_type {};
 
 template <class T>
 concept edited_strings = is_edited_strings<T>::value;
@@ -292,8 +341,8 @@ namespace mitama::unindent::inline literals {
 //  //   print("Hello")
 //  //   print("World")
 // ```
-template <details::fixed_string S>
-inline constexpr edited<S, details::to_unindented> operator""_i() {
+template <fixed_string S>
+inline constexpr edited_string<S, details::to_unindented> operator""_i() {
   return {};
 }
 
@@ -313,8 +362,8 @@ inline constexpr edited<S, details::to_unindented> operator""_i() {
 //  // Output:
 //  // cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
 // ```
-template <details::fixed_string S>
-inline constexpr edited<S, details::to_folded> operator""_i1() {
+template <fixed_string S>
+inline constexpr edited_string<S, details::to_folded> operator""_i1() {
   return {};
 }
 } // namespace mitama::unindent::inline literals

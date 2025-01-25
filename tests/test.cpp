@@ -5,6 +5,16 @@
 
 #include <unindent/unindent.hpp>
 
+TEST_CASE("CTAD#1", "[fixed_string]") {
+  [[maybe_unused]] constexpr mitama::unindent::fixed_string _ = "abc";
+}
+
+template <mitama::unindent::fixed_string S> struct foo {};
+
+TEST_CASE("CTAD#2", "[fixed_string]") {
+  [[maybe_unused]] constexpr foo<"abc"> _;
+}
+
 TEST_CASE("unindent#1", "[unindent]") {
   using namespace std::literals;
   using namespace mitama::unindent::literals;
