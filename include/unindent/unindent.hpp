@@ -36,63 +36,64 @@ inline std::ostream &operator<<(std::ostream &os, fixed_string<CharT, N> fs) {
 } // namespace details
 
 namespace details {
-inline constexpr auto to_unindented = []<typename CharT, std::size_t N>(
-                                          std::array<CharT, N> raw) consteval {
-  namespace views = std::ranges::views;
-  using namespace std::literals;
-  using std::size_t;
-  auto str = std::basic_string_view<CharT>(raw.data());
+// editor function for unindented string
+inline constexpr auto to_unindented =
+    []<typename CharT, std::size_t N>(std::array<CharT, N> raw) consteval {
+      namespace views = std::ranges::views;
+      using namespace std::literals;
+      using std::size_t;
+      auto str = std::basic_string_view<CharT>(raw.data());
 
-  while (str.ends_with(' '))
-    str.remove_suffix(1);
-  while (str.ends_with('\n'))
-    str.remove_suffix(1);
-  while (str.starts_with('\n'))
-    str.remove_prefix(1);
+      while (str.ends_with(' '))
+        str.remove_suffix(1);
+      while (str.ends_with('\n'))
+        str.remove_suffix(1);
+      while (str.starts_with('\n'))
+        str.remove_prefix(1);
 
-  auto is_space = [](CharT c) { return c == ' '; };
+      auto is_space = [](CharT c) { return c == ' '; };
+      auto is_not_empty = [](auto line) { return !line.empty(); };
 
-  auto lines = str | views::split("\n"sv);
-  auto lines_without_empty =
-      str | views::split("\n"sv) |
-      views::filter([](auto line) { return !line.empty(); });
+      auto lines = str | views::split("\n"sv);
+      auto lines_without_empty = lines | views::filter(is_not_empty);
 
-  auto min_indent = std::numeric_limits<size_t>::max();
+      auto min_indent = std::numeric_limits<size_t>::max();
 
-  std::array<CharT, N> buffer = {};
-  size_t index = 0;
+      std::array<CharT, N> buffer = {};
+      size_t index = 0;
 
-  for (auto line : lines_without_empty) {
-    auto iter = std::find_if_not(line.begin(), line.end(), is_space);
-    min_indent = std::min(
-        {min_indent, static_cast<size_t>(std::distance(line.begin(), iter))});
-  }
+      for (auto line : lines_without_empty) {
+        auto iter = std::find_if_not(line.begin(), line.end(), is_space);
+        auto indent = static_cast<size_t>(std::distance(line.begin(), iter));
+        min_indent = std::min({min_indent, indent});
+      }
 
-  if (min_indent == std::numeric_limits<size_t>::max() || min_indent == 0) {
-    for (auto c : str) {
-      buffer[index++] = c;
-    }
-    return buffer;
-  }
+      if (min_indent == std::numeric_limits<size_t>::max() || min_indent == 0) {
+        for (auto c : str) {
+          buffer[index++] = c;
+        }
+        return buffer;
+      }
 
-  auto fn = [min_indent](auto line) {
-    std::basic_string_view<CharT> line_view{line.begin(), line.end()};
-    if (line_view.size() < min_indent)
-      return line_view;
-    line_view.remove_prefix(min_indent);
-    return line_view;
-  };
+      auto fn = [min_indent](auto line) {
+        std::basic_string_view<CharT> line_view{line.begin(), line.end()};
+        if (line_view.size() < min_indent)
+          return line_view;
+        line_view.remove_prefix(min_indent);
+        return line_view;
+      };
 
-  for (auto line : lines | views::transform(fn)) {
-    for (auto c : line) {
-      buffer[index++] = c;
-    }
-    buffer[index++] = '\n';
-  }
-  buffer[index - 1] = '\0';
-  return buffer;
-};
+      for (auto line : lines | views::transform(fn)) {
+        for (auto c : line) {
+          buffer[index++] = c;
+        }
+        buffer[index++] = '\n';
+      }
+      buffer[index - 1] = '\0';
+      return buffer;
+    };
 
+// editor function for folded string
 inline constexpr auto to_folded =
     []<typename CharT, std::size_t N>(std::array<CharT, N> raw) consteval {
       namespace views = std::ranges::views;
@@ -103,6 +104,9 @@ inline constexpr auto to_folded =
       size_t index = 0;
       size_t returns = 0;
 
+      // First, adjust the indentation of the string.
+      // Second, replace multiple returns with a single return
+      // and replace a single return with a space.
       for (auto c : to_unindented(raw)) {
         if (is_return(c)) {
           returns++;
@@ -122,6 +126,22 @@ inline constexpr auto to_folded =
 } // namespace details
 
 // edited string (value type)
+// This class is a value type that represents a string that has been edited by `Editor`.
+// 
+// template parameters:
+// `Lit`: The non-type template parameter, a `fixed_string` representing the original string.
+// `Editor`: The non-type template parameter, a function object specifying how to edit the original string.
+//
+// [Note: `Editor` is a CPO (Customization Point Object) that is a function object.
+//  The function object must be a immidiaate function object that satisfies the following requirements:
+//  ```
+//  requires {
+//    {
+//      Editor(Lit.s)
+//    } -> std::same_as<std::array<typename decltype(Lit)::char_type, decltype(Lit)::size>>;
+//  }
+//  ```
+// — end note]
 template <details::fixed_string Lit, auto Editor>
   requires requires {
     {
@@ -245,11 +265,44 @@ inline std::ostream &operator<<(std::ostream &os,
 } // namespace mitama::unindent
 
 namespace mitama::unindent::inline literals {
+// indent-adjunsted multiline string literal
+// This literal operator returns an indent-adjunsted string.
+//
+// Usage:
+// ```cpp
+//  constexpr std::string_view unindented_str = R"(
+//    def foo():
+//      print("Hello")
+//      print("World")
+//  )"_i;
+// 
+//  std::cout << unindented_str;
+//  // Output:
+//  // def foo():
+//  //   print("Hello")
+//  //   print("World")
+// ```
 template <details::fixed_string S>
 inline constexpr edited<S, details::to_unindented> operator""_i() {
   return {};
 }
 
+// folded multiline string literal
+// This literal operator returns a folded string.
+//
+// Usage:
+// ```cpp
+//  constexpr std::string_view folded_str = R"(
+//    cmake
+//    -DCMAKE_BUILD_TYPE=Release
+//    -B build
+//    -S .
+//  )"_i1;
+//
+//  std::cout << folded_str;
+//  // Output:
+//  // cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
+// ```
 template <details::fixed_string S>
 inline constexpr edited<S, details::to_folded> operator""_i1() {
   return {};
