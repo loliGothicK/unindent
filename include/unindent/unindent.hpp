@@ -5,6 +5,8 @@
 #include <cctype>
 #include <concepts>
 #include <cstddef>
+#include <format>
+#include <functional>
 #include <iostream>
 #include <limits>
 #include <ranges>
@@ -144,10 +146,14 @@ inline constexpr auto to_folded =
 //  ```
 //  `Lit.s` is a `const std::array` of `CharT` that represents the original
 //  string.
+//  Note that the return value must be null terminated in order to pass the
+//  `std::array::data()` to `basic_string_view::basic_string_view(const CharT*)`
+//  when converting `edited` to `basic_string_view` (for more detail, see:
+//  https://en.cppreference.com/w/cpp/string/basic_string_view/basic_string_view).
 // — end note]
 template <details::fixed_string Lit, auto Editor>
   requires requires {
-    { Editor(Lit.s) } -> std::convertible_to<decltype(Lit.s)>;
+    { std::invoke(Editor, Lit.s) } -> std::convertible_to<decltype(Lit.s)>;
   }
 class edited {
 public:
@@ -155,7 +161,7 @@ public:
   using char_type = decltype(Lit)::char_type;
 
 private:
-  static constexpr decltype(Lit.s) value_ = Editor(Lit.s);
+  static constexpr decltype(Lit.s) value_ = std::invoke(Editor, Lit.s);
 
 public:
   // member functions
@@ -213,14 +219,19 @@ public:
   constexpr auto crend() const { return edited::value().crend(); }
 
   // conversion operator
-  constexpr operator std::basic_string_view<char_type>() const {
+  constexpr operator std::basic_string_view<char_type>() const noexcept {
     return std::basic_string_view<char_type>(value_.data());
   }
 
   // static member function
   // access the value of the edited string
-  static constexpr std::basic_string_view<char_type> value() {
+  static constexpr std::basic_string_view<char_type> value() noexcept {
     return std::basic_string_view<char_type>(value_.data());
+  }
+
+  // format with args
+  template <class... Args> auto format(Args &&...args) const {
+    return std::format(value(), std::forward<Args>(args)...);
   }
 };
 

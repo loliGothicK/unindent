@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <format>
 #include <iostream>
 #include <string_view>
 
@@ -54,4 +55,26 @@ TEST_CASE("comprisons#2", "[unindented]") {
                 unindented_str);
   static_assert("def foo():\n  print(\"Hello\")\n  print(\"World\")" ==
                 unindented_str);
+}
+
+TEST_CASE("format#1", "[folded]") {
+  using namespace std::literals;
+  using namespace mitama::unindent::literals;
+  auto str = std::format(R"(
+    {}
+    {}
+  )"_i1,
+                         "Hello", "World");
+  REQUIRE(str == "Hello World"sv);
+}
+
+TEST_CASE("format#2", "[folded]") {
+  using namespace std::literals;
+  using namespace mitama::unindent::literals;
+  constexpr auto fmt = R"(
+    {}
+    {}
+  )"_i1;
+  auto str = fmt.format("Hello", "World");
+  REQUIRE(str == "Hello World"sv);
 }
