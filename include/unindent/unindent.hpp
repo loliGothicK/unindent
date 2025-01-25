@@ -258,14 +258,14 @@ public:
   // #endregion
 
   // iterator support
-  constexpr auto begin() { return edited_string::value().begin(); }
-  constexpr auto end() { return edited_string::value().end(); }
-  constexpr auto cbegin() const { return edited_string::value().cbegin(); }
-  constexpr auto cend() const { return edited_string::value().cend(); }
-  constexpr auto rbegin() { return edited_string::value().rbegin(); }
-  constexpr auto rend() { return edited_string::value().rend(); }
-  constexpr auto crbegin() const { return edited_string::value().crbegin(); }
-  constexpr auto crend() const { return edited_string::value().crend(); }
+  constexpr auto begin() const noexcept { return edited_string::value().begin(); }
+  constexpr auto end() const noexcept { return edited_string::value().end(); }
+  constexpr auto cbegin() const noexcept { return edited_string::value().cbegin(); }
+  constexpr auto cend() const noexcept { return edited_string::value().cend(); }
+  constexpr auto rbegin() const noexcept { return edited_string::value().rbegin(); }
+  constexpr auto rend() const noexcept { return edited_string::value().rend(); }
+  constexpr auto crbegin() const noexcept { return edited_string::value().crbegin(); }
+  constexpr auto crend() const noexcept { return edited_string::value().crend(); }
 
   // conversion operator
   constexpr operator std::basic_string_view<char_type>() const noexcept {

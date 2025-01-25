@@ -88,3 +88,15 @@ TEST_CASE("format#2", "[folded]") {
   auto str = fmt.format("Hello", "World");
   REQUIRE(str == "Hello World"sv);
 }
+
+// iterator test
+TEST_CASE("iterator#1", "[folded]") {
+  using namespace std::literals;
+  using namespace mitama::unindent::literals;
+  constexpr auto folded_str = R"(
+    first
+    second
+  )"_i1;
+
+  REQUIRE(std::ranges::equal(folded_str, "first second"sv));
+}
