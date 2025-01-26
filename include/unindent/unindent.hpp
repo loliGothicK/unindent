@@ -70,11 +70,10 @@ template <class CharT, std::size_t N> struct fixed_string {
   static constexpr std::size_t size = N;
   using char_type = CharT;
 
-  constexpr fixed_string(const CharT (&s)[N])
-      : fixed_string(s, std::make_index_sequence<N>{}) {}
-  template <std::size_t... Indices>
-  constexpr fixed_string(const CharT (&s)[N], std::index_sequence<Indices...>)
-      : s{s[Indices]...} {}
+  constexpr fixed_string(const CharT (&init)[N])
+      : s{[&]<std::size_t... Indices>(std::index_sequence<Indices...>) {
+          return std::array{init[Indices]...};
+        }(std::make_index_sequence<N>{})} {}
 
   const std::array<CharT, N> s;
 };
