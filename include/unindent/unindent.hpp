@@ -182,8 +182,7 @@ namespace details
 //  Note that the return value must be null terminated in order to pass the
 //  `std::array::data()` to `basic_string_view::basic_string_view(const CharT*)`
 //  when converting `edited_string` to `basic_string_view` (for more detail,
-//  see:
-//  https://en.cppreference.com/w/cpp/string/basic_string_view/basic_string_view).
+//  see: https://timsong-cpp.github.io/cppwp/n4861/string.view.cons#2).
 //
 //  To make your own literal operator, you can use `edited_string` as follows:
 //  [Example:
