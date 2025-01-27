@@ -202,16 +202,13 @@ template <fixed_string Lit, auto Editor>
   requires requires {
     { Editor(Lit.s) } -> std::convertible_to<decltype(Lit.s)>;
   }
-class edited_string
+class [[nodiscard]] edited_string final
 {
   static constexpr decltype(Lit.s) value_ = Editor(Lit.s);
 
 public:
   // type members
   using char_type = decltype(Lit)::char_type;
-
-public:
-  // member functions
 
   // #region comparison operators
   constexpr inline friend std::strong_ordering
@@ -221,22 +218,22 @@ public:
 
   constexpr inline friend bool
   operator!=(std::basic_string_view<char_type> lhs, const edited_string&) noexcept {
-    return lhs <=> edited_string::value() != std::strong_ordering::equal;
+    return lhs != edited_string::value();
   }
 
   constexpr inline friend bool
   operator==(std::basic_string_view<char_type> lhs, const edited_string&) noexcept {
-    return lhs <=> edited_string::value() == std::strong_ordering::equal;
+    return lhs == edited_string::value();
   }
 
   constexpr inline friend bool
   operator<(std::basic_string_view<char_type> lhs, const edited_string&) noexcept {
-    return lhs <=> edited_string::value() == std::strong_ordering::less;
+    return lhs < edited_string::value();
   }
 
   constexpr inline friend bool
   operator>(std::basic_string_view<char_type> lhs, const edited_string&) noexcept {
-    return lhs <=> edited_string::value() == std::strong_ordering::greater;
+    return lhs > edited_string::value();
   }
 
   constexpr inline friend std::strong_ordering operator<=>(
@@ -248,25 +245,25 @@ public:
   constexpr inline friend bool operator!=(
       const edited_string&, std::basic_string_view<char_type> rhs
   ) noexcept {
-    return edited_string::value() <=> rhs != std::strong_ordering::equal;
+    return edited_string::value() != rhs;
   }
 
   constexpr inline friend bool operator==(
       const edited_string&, std::basic_string_view<char_type> rhs
   ) noexcept {
-    return edited_string::value() <=> rhs == std::strong_ordering::equal;
+    return edited_string::value() == rhs;
   }
 
   constexpr inline friend bool operator<(
       const edited_string&, std::basic_string_view<char_type> rhs
   ) noexcept {
-    return edited_string::value() <=> rhs == std::strong_ordering::less;
+    return edited_string::value() < rhs;
   }
 
   constexpr inline friend bool operator>(
       const edited_string&, std::basic_string_view<char_type> rhs
   ) noexcept {
-    return edited_string::value() <=> rhs == std::strong_ordering::greater;
+    return edited_string::value() > rhs;
   }
   // #endregion
 
