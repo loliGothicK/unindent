@@ -24,8 +24,8 @@ namespace mitama::unindent {
 // - `N`: The non-type template parameter, the size of the string literal.
 //
 // [Note 1: `fixed_string` is initialized with a string literals.
-// In addition, due to CTAD, `CharT` and `N` is automatically deduced.
-// [Example:
+// In addition, due to CTAD (Class Template Argument Deduction), `CharT` and `N`
+// is automatically deduced. [Example:
 //   ```
 //   constexpr fixed_string fs = "abc"; // fixed_string<char, 4>
 //   ```
@@ -36,9 +36,7 @@ namespace mitama::unindent {
 // — end note]
 //
 // [Note 2: Since C++20, `fixed_string` can be used as non-type template
-// arguments with CTAD.
-//
-// [Example:
+// arguments with CTAD. [Example:
 //   ```
 //   template <fixed_string S>
 //   struct foo {};
@@ -51,9 +49,7 @@ namespace mitama::unindent {
 // — end note]
 //
 // [Note 3: Since C++20, `fixed_string` can be used as a template parameter
-// of a user-defined literals.
-//
-// [Example:
+// of a user-defined literals. [Example:
 //   ```
 //   template <fixed_string S>
 //   inline constexpr auto operator""_fixed() {
