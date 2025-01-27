@@ -21,7 +21,7 @@ int main() {
   using namespace std::literals;
   using namespace mitama::unindent;
 
-  constexpr std::string_view unindented_str = R"(
+  constexpr auto unindented_str = R"(
     def foo():
       print("Hello")
       print("World")
@@ -42,7 +42,7 @@ The `"..."_i1` UDL is like `"..."_i`, except it folds "paragraphs" of text into 
 int main() {
   using namespace std::literals;
   using namespace mitama::unindent::literals;
-  constexpr std::string_view folded_str = R"(
+  constexpr auto folded_str = R"(
     This is the first line.
     This line is appended to the first.
 

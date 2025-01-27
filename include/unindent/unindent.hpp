@@ -213,42 +213,57 @@ public:
 
   // #region comparison operators
   constexpr inline friend std::strong_ordering
-  operator<=>(std::basic_string_view<char_type> lhs, edited_string) noexcept {
+  operator<=>(std::basic_string_view<char_type> lhs, const edited_string&) noexcept {
     return lhs <=> edited_string::value();
   }
 
   constexpr inline friend bool
-  operator==(std::basic_string_view<char_type> lhs, edited_string) noexcept {
+  operator!=(std::basic_string_view<char_type> lhs, const edited_string&) noexcept {
+    return lhs <=> edited_string::value() != std::strong_ordering::equal;
+  }
+
+  constexpr inline friend bool
+  operator==(std::basic_string_view<char_type> lhs, const edited_string&) noexcept {
     return lhs <=> edited_string::value() == std::strong_ordering::equal;
   }
 
   constexpr inline friend bool
-  operator<(std::basic_string_view<char_type> lhs, edited_string) noexcept {
+  operator<(std::basic_string_view<char_type> lhs, const edited_string&) noexcept {
     return lhs <=> edited_string::value() == std::strong_ordering::less;
   }
 
   constexpr inline friend bool
-  operator>(std::basic_string_view<char_type> lhs, edited_string) noexcept {
+  operator>(std::basic_string_view<char_type> lhs, const edited_string&) noexcept {
     return lhs <=> edited_string::value() == std::strong_ordering::greater;
   }
 
-  constexpr inline friend std::strong_ordering
-  operator<=>(edited_string, std::basic_string_view<char_type> rhs) noexcept {
+  constexpr inline friend std::strong_ordering operator<=>(
+      const edited_string&, std::basic_string_view<char_type> rhs
+  ) noexcept {
     return edited_string::value() <=> rhs;
   }
 
-  constexpr inline friend bool
-  operator==(edited_string, std::basic_string_view<char_type> rhs) noexcept {
+  constexpr inline friend bool operator!=(
+      const edited_string&, std::basic_string_view<char_type> rhs
+  ) noexcept {
+    return edited_string::value() <=> rhs != std::strong_ordering::equal;
+  }
+
+  constexpr inline friend bool operator==(
+      const edited_string&, std::basic_string_view<char_type> rhs
+  ) noexcept {
     return edited_string::value() <=> rhs == std::strong_ordering::equal;
   }
 
-  constexpr inline friend bool
-  operator<(edited_string, std::basic_string_view<char_type> rhs) noexcept {
+  constexpr inline friend bool operator<(
+      const edited_string&, std::basic_string_view<char_type> rhs
+  ) noexcept {
     return edited_string::value() <=> rhs == std::strong_ordering::less;
   }
 
-  constexpr inline friend bool
-  operator>(edited_string, std::basic_string_view<char_type> rhs) noexcept {
+  constexpr inline friend bool operator>(
+      const edited_string&, std::basic_string_view<char_type> rhs
+  ) noexcept {
     return edited_string::value() <=> rhs == std::strong_ordering::greater;
   }
   // #endregion
@@ -279,11 +294,6 @@ public:
     return edited_string::value().crend();
   }
 
-  // conversion operator
-  constexpr operator std::basic_string_view<char_type>() const noexcept {
-    return std::basic_string_view<char_type>(value_.data());
-  }
-
   // static member function
   // access the value of the edited_string string
   static constexpr std::basic_string_view<char_type> value() noexcept {
@@ -294,6 +304,10 @@ public:
   template <class... Args>
   auto format(Args&&... args) const {
     return std::format(value(), std::forward<Args>(args)...);
+  }
+
+  constexpr std::basic_string_view<char_type> to_str() const {
+    return value();
   }
 };
 
@@ -307,40 +321,57 @@ namespace details
   {};
 
   template <class T>
-  concept edited_strings = is_edited_strings<T>::value;
+  concept edited_strings = is_edited_strings<std::remove_cvref_t<T>>::value;
 } // namespace details
 
 template <details::edited_strings S1, details::edited_strings S2>
-  requires std::same_as<typename S1::char_type, typename S2::char_type>
+  requires std::same_as<
+      typename std::remove_cvref_t<S1>::char_type,
+      typename std::remove_cvref_t<S2>::char_type>
 constexpr inline std::strong_ordering
-operator<=>(S1, S2) noexcept {
-  return S1::value() <=> S2::value();
+operator<=>(S1&&, S2&&) noexcept {
+  return std::remove_cvref_t<S1>::value() <=> std::remove_cvref_t<S2>::value();
 }
 
 template <details::edited_strings S1, details::edited_strings S2>
-  requires std::same_as<typename S1::char_type, typename S2::char_type>
+  requires std::same_as<
+      typename std::remove_cvref_t<S1>::char_type,
+      typename std::remove_cvref_t<S2>::char_type>
 constexpr inline bool
-operator==(S1, S2) noexcept {
-  return S1::value() <=> S2::value() == std::strong_ordering::equal;
+operator!=(S1&&, S2&&) noexcept {
+  return std::remove_cvref_t<S1>::value() != std::remove_cvref_t<S2>::value();
 }
 
 template <details::edited_strings S1, details::edited_strings S2>
-  requires std::same_as<typename S1::char_type, typename S2::char_type>
+  requires std::same_as<
+      typename std::remove_cvref_t<S1>::char_type,
+      typename std::remove_cvref_t<S2>::char_type>
 constexpr inline bool
-operator<(S1, S2) noexcept {
-  return S1::value() <=> S2::value() == std::strong_ordering::less;
+operator==(S1&&, S2&&) noexcept {
+  return std::remove_cvref_t<S1>::value() == std::remove_cvref_t<S2>::value();
 }
 
 template <details::edited_strings S1, details::edited_strings S2>
-  requires std::same_as<typename S1::char_type, typename S2::char_type>
+  requires std::same_as<
+      typename std::remove_cvref_t<S1>::char_type,
+      typename std::remove_cvref_t<S2>::char_type>
 constexpr inline bool
-operator>(S1, S2) noexcept {
-  return S1::value() <=> S2::value() == std::strong_ordering::greater;
+operator<(S1&&, S2&&) noexcept {
+  return std::remove_cvref_t<S1>::value() < std::remove_cvref_t<S2>::value();
+}
+
+template <details::edited_strings S1, details::edited_strings S2>
+  requires std::same_as<
+      typename std::remove_cvref_t<S1>::char_type,
+      typename std::remove_cvref_t<S2>::char_type>
+constexpr inline bool
+operator>(S1&&, S2&&) noexcept {
+  return std::remove_cvref_t<S1>::value() > std::remove_cvref_t<S2>::value();
 }
 
 inline std::ostream&
-operator<<(std::ostream& os, details::edited_strings auto _) {
-  return os << decltype(_)::value();
+operator<<(std::ostream& os, details::edited_strings auto&& _) {
+  return os << std::remove_cvref_t<decltype(_)>::value();
 }
 } // namespace mitama::unindent
 
