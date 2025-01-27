@@ -89,7 +89,6 @@ namespace details
   inline constexpr auto to_unindented =
       []<typename CharT, std::size_t N>(std::array<CharT, N> raw) consteval {
         namespace views = ::std::ranges::views;
-        namespace ranges = ::std::ranges;
         using namespace std::literals;
 
         auto str = std::basic_string_view<CharT>(raw.data());
@@ -106,13 +105,16 @@ namespace details
         = lines
         | views::filter([](auto line) { return !line.empty(); })
         | views::transform([](auto line) {
-            return ranges::distance(
+            return std::ranges::distance(
               line | views::take_while([](CharT c) { return c == ' '; }));
           });
         // clang-format on
 
-        auto fn = [n = static_cast<std::size_t>(ranges::min(indents))](auto line
-                  ) { return line.size() >= n ? line | views::drop(n) : line; };
+        std::size_t min = std::ranges::min(indents);
+
+        auto fn = [min](auto line) {
+          return line.size() >= min ? line | views::drop(min) : line;
+        };
 
         std::array<CharT, N> buffer = {};
         std::size_t index = 0;
