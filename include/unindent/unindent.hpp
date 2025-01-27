@@ -15,7 +15,8 @@
 #include <type_traits>
 #include <utility>
 
-namespace mitama::unindent {
+namespace mitama::unindent
+{
 // fixed_string (structural type)
 // This is a class representing a string literal.
 //
@@ -62,41 +63,45 @@ namespace mitama::unindent {
 //
 // ref: https://timsong-cpp.github.io/cppwp/n4861/lex.ext#5
 // -- end Note]
-template <class CharT, std::size_t N> struct fixed_string {
+template <class CharT, std::size_t N>
+struct fixed_string
+{
   static constexpr std::size_t size = N;
   using char_type = CharT;
 
   constexpr fixed_string(const CharT (&init)[N])
-      : s{[&]<std::size_t... Indices>(std::index_sequence<Indices...>) {
-          return std::array{init[Indices]...};
-        }(std::make_index_sequence<N>{})} {}
+      : s{ [&]<std::size_t... Indices>(std::index_sequence<Indices...>) {
+          return std::array{ init[Indices]... };
+        }(std::make_index_sequence<N>{}) } {}
 
   const std::array<CharT, N> s;
 };
 
 template <class CharT, std::size_t N>
-inline std::ostream &operator<<(std::ostream &os, fixed_string<CharT, N> fs) {
+inline std::ostream&
+operator<<(std::ostream& os, fixed_string<CharT, N> fs) {
   return os << fs.s;
 }
 
-namespace details {
-// editor function for unindented string
-inline constexpr auto to_unindented = []<typename CharT, std::size_t N>(
-                                          std::array<CharT, N> raw) consteval {
-  namespace views = ::std::ranges::views;
-  namespace ranges = ::std::ranges;
-  using namespace std::literals;
+namespace details
+{
+  // editor function for unindented string
+  inline constexpr auto to_unindented =
+      []<typename CharT, std::size_t N>(std::array<CharT, N> raw) consteval {
+        namespace views = ::std::ranges::views;
+        namespace ranges = ::std::ranges;
+        using namespace std::literals;
 
-  auto str = std::basic_string_view<CharT>(raw.data());
+        auto str = std::basic_string_view<CharT>(raw.data());
 
-  while (str.starts_with('\n'))
-    str.remove_prefix(1);
-  while (str.ends_with(' ') or str.ends_with('\n'))
-    str.remove_suffix(1);
+        while (str.starts_with('\n'))
+          str.remove_prefix(1);
+        while (str.ends_with(' ') or str.ends_with('\n'))
+          str.remove_suffix(1);
 
-  auto lines = str | views::split("\n"sv);
+        auto lines = str | views::split("\n"sv);
 
-  // clang-format off
+        // clang-format off
       auto indents
         = lines
         | views::filter([](auto line) { return !line.empty(); })
@@ -104,55 +109,52 @@ inline constexpr auto to_unindented = []<typename CharT, std::size_t N>(
             return ranges::distance(
               line | views::take_while([](CharT c) { return c == ' '; }));
           });
-  // clang-format on
+        // clang-format on
 
-  auto fn = [n = static_cast<std::size_t>(ranges::min(indents))](auto line) {
-    return line.size() >= n ? line | views::drop(n) : line;
-  };
+        auto fn = [n = static_cast<std::size_t>(ranges::min(indents))](auto line
+                  ) { return line.size() >= n ? line | views::drop(n) : line; };
 
-  std::array<CharT, N> buffer = {};
-  std::size_t index = 0;
+        std::array<CharT, N> buffer = {};
+        std::size_t index = 0;
 
-  for (auto line : lines | views::transform(fn)) {
-    for (auto c : line) {
-      buffer[index++] = c;
-    }
-    buffer[index++] = '\n';
-  }
-  buffer[index - 1] = '\0';
-  return buffer;
-};
-
-// editor function for folded string
-inline constexpr auto to_folded =
-    []<typename CharT, std::size_t N>(std::array<CharT, N> raw) consteval {
-      namespace views = std::ranges::views;
-
-      auto is_return = [](CharT c) { return c == '\n'; };
-
-      std::array<CharT, N> buffer = {};
-      size_t index = 0;
-      size_t returns = 0;
-
-      // First, adjust the indentation of the string.
-      // Second, replace multiple returns with a single return
-      // and replace a single return with a space.
-      for (auto c : to_unindented(raw)) {
-        if (is_return(c)) {
-          returns++;
-        } else {
-          if (returns > 1) {
-            buffer[index++] = '\n';
-          } else if (returns == 1) {
-            buffer[index++] = ' ';
+        for (auto line : lines | views::transform(fn)) {
+          for (auto c : line) {
+            buffer[index++] = c;
           }
-          buffer[index++] = c;
-          returns = 0;
+          buffer[index++] = '\n';
         }
-      }
+        buffer[index - 1] = '\0';
+        return buffer;
+      };
 
-      return buffer;
-    };
+  // editor function for folded string
+  inline constexpr auto to_folded =
+      []<typename CharT, std::size_t N>(std::array<CharT, N> raw) consteval {
+        namespace views = std::ranges::views;
+
+        std::array<CharT, N> buffer = {};
+        size_t index = 0;
+        size_t returns = 0;
+
+        // First, adjust the indentation of the string.
+        // Second, replace multiple returns with a single return
+        // and replace a single return with a space.
+        for (auto c : to_unindented(raw)) {
+          if (c == '\n') {
+            returns++;
+          } else {
+            if (returns > 1) {
+              buffer[index++] = '\n';
+            } else if (returns == 1) {
+              buffer[index++] = ' ';
+            }
+            buffer[index++] = c;
+            returns = 0;
+          }
+        }
+
+        return buffer;
+      };
 } // namespace details
 
 // This is a class representing a string that has been edited by `Editor`.
@@ -198,13 +200,13 @@ template <fixed_string Lit, auto Editor>
   requires requires {
     { Editor(Lit.s) } -> std::convertible_to<decltype(Lit.s)>;
   }
-class edited_string {
+class edited_string
+{
+  static constexpr decltype(Lit.s) value_ = Editor(Lit.s);
+
 public:
   // type members
   using char_type = decltype(Lit)::char_type;
-
-private:
-  static constexpr decltype(Lit.s) value_ = Editor(Lit.s);
 
 public:
   // member functions
@@ -215,18 +217,18 @@ public:
     return lhs <=> edited_string::value();
   }
 
-  constexpr inline friend bool operator==(std::basic_string_view<char_type> lhs,
-                                          edited_string) noexcept {
+  constexpr inline friend bool
+  operator==(std::basic_string_view<char_type> lhs, edited_string) noexcept {
     return lhs <=> edited_string::value() == std::strong_ordering::equal;
   }
 
-  constexpr inline friend bool operator<(std::basic_string_view<char_type> lhs,
-                                         edited_string) noexcept {
+  constexpr inline friend bool
+  operator<(std::basic_string_view<char_type> lhs, edited_string) noexcept {
     return lhs <=> edited_string::value() == std::strong_ordering::less;
   }
 
-  constexpr inline friend bool operator>(std::basic_string_view<char_type> lhs,
-                                         edited_string) noexcept {
+  constexpr inline friend bool
+  operator>(std::basic_string_view<char_type> lhs, edited_string) noexcept {
     return lhs <=> edited_string::value() == std::strong_ordering::greater;
   }
 
@@ -255,15 +257,21 @@ public:
   constexpr auto begin() const noexcept {
     return edited_string::value().begin();
   }
-  constexpr auto end() const noexcept { return edited_string::value().end(); }
+  constexpr auto end() const noexcept {
+    return edited_string::value().end();
+  }
   constexpr auto cbegin() const noexcept {
     return edited_string::value().cbegin();
   }
-  constexpr auto cend() const noexcept { return edited_string::value().cend(); }
+  constexpr auto cend() const noexcept {
+    return edited_string::value().cend();
+  }
   constexpr auto rbegin() const noexcept {
     return edited_string::value().rbegin();
   }
-  constexpr auto rend() const noexcept { return edited_string::value().rend(); }
+  constexpr auto rend() const noexcept {
+    return edited_string::value().rend();
+  }
   constexpr auto crbegin() const noexcept {
     return edited_string::value().crbegin();
   }
@@ -283,51 +291,61 @@ public:
   }
 
   // format with args
-  template <class... Args> auto format(Args &&...args) const {
+  template <class... Args>
+  auto format(Args&&... args) const {
     return std::format(value(), std::forward<Args>(args)...);
   }
 };
 
-namespace details {
-template <class> struct is_edited_strings : std::false_type {};
-template <auto S, auto _>
-struct is_edited_strings<edited_string<S, _>> : std::true_type {};
+namespace details
+{
+  template <class>
+  struct is_edited_strings : std::false_type
+  {};
+  template <auto S, auto _>
+  struct is_edited_strings<edited_string<S, _>> : std::true_type
+  {};
 
-template <class T>
-concept edited_strings = is_edited_strings<T>::value;
+  template <class T>
+  concept edited_strings = is_edited_strings<T>::value;
 } // namespace details
 
 template <details::edited_strings S1, details::edited_strings S2>
   requires std::same_as<typename S1::char_type, typename S2::char_type>
-constexpr inline std::strong_ordering operator<=>(S1, S2) noexcept {
+constexpr inline std::strong_ordering
+operator<=>(S1, S2) noexcept {
   return S1::value() <=> S2::value();
 }
 
 template <details::edited_strings S1, details::edited_strings S2>
   requires std::same_as<typename S1::char_type, typename S2::char_type>
-constexpr inline bool operator==(S1, S2) noexcept {
+constexpr inline bool
+operator==(S1, S2) noexcept {
   return S1::value() <=> S2::value() == std::strong_ordering::equal;
 }
 
 template <details::edited_strings S1, details::edited_strings S2>
   requires std::same_as<typename S1::char_type, typename S2::char_type>
-constexpr inline bool operator<(S1, S2) noexcept {
+constexpr inline bool
+operator<(S1, S2) noexcept {
   return S1::value() <=> S2::value() == std::strong_ordering::less;
 }
 
 template <details::edited_strings S1, details::edited_strings S2>
   requires std::same_as<typename S1::char_type, typename S2::char_type>
-constexpr inline bool operator>(S1, S2) noexcept {
+constexpr inline bool
+operator>(S1, S2) noexcept {
   return S1::value() <=> S2::value() == std::strong_ordering::greater;
 }
 
-inline std::ostream &operator<<(std::ostream &os,
-                                details::edited_strings auto _) {
+inline std::ostream&
+operator<<(std::ostream& os, details::edited_strings auto _) {
   return os << decltype(_)::value();
 }
 } // namespace mitama::unindent
 
-namespace mitama::unindent::inline literals {
+namespace mitama::unindent::inline literals
+{
 // indent-adjunsted multiline string literal
 // This literal operator returns an indent-adjunsted string.
 //
@@ -346,7 +364,8 @@ namespace mitama::unindent::inline literals {
 //  //   print("World")
 // ```
 template <fixed_string S>
-inline constexpr edited_string<S, details::to_unindented> operator""_i() {
+inline constexpr edited_string<S, details::to_unindented>
+operator""_i() {
   return {};
 }
 
@@ -367,7 +386,8 @@ inline constexpr edited_string<S, details::to_unindented> operator""_i() {
 //  // cmake -DCMAKE_BUILD_TYPE=Release -B build -S .
 // ```
 template <fixed_string S>
-inline constexpr edited_string<S, details::to_folded> operator""_i1() {
+inline constexpr edited_string<S, details::to_folded>
+operator""_i1() {
   return {};
 }
 } // namespace mitama::unindent::inline literals
