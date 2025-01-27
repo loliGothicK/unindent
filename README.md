@@ -56,6 +56,56 @@ int main() {
 }
 ```
 
+## APIs
+
+### format(auto&& ...args)
+
+Invokes `std::format`.
+Same as `std::format("..."_i.to_str(), args...)`.
+
+```cpp
+  using namespace mitama::unindent::literals;
+  constexpr auto fmt = R"(
+    {}
+    {}
+  )"_i1;
+  auto str = fmt.format("Hello", "World");
+  // Hello
+  // World
+```
+
+### to_str()
+
+Returns `basic_string_view`.
+
+```cpp
+  using namespace mitama::unindent;
+
+  constexpr std::string_view _ = R"(
+    def foo():
+      print("Hello")
+      print("World")
+  )"_i.to_str();
+```
+
+### iterator support
+
+```cpp
+  constexpr auto begin() const noexcept;
+  constexpr auto end() const noexcept;
+  constexpr auto cbegin() const noexcept;
+  constexpr auto cend() const noexcept;
+  constexpr auto rbegin() const noexcept;
+  constexpr auto rend() const noexcept;
+  constexpr auto crbegin() const noexcept;
+  constexpr auto crend() const noexcept;
+```
+
+### conparison operators
+
+`edited_string` and `std::string_view` can be compared.
+Also, `edited_string` and `edited_string` can be compared.
+
 ## Supported OS/Compiler
 
 - Linux

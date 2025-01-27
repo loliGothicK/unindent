@@ -299,9 +299,8 @@ public:
   }
 
   // format with args
-  template <class... Args>
-  auto format(Args&&... args) const {
-    return std::format(value(), std::forward<Args>(args)...);
+  auto format(auto&&... args) const {
+    return std::format(value(), std::forward<decltype(args)>(args)...);
   }
 
   constexpr std::basic_string_view<char_type> to_str() const {
