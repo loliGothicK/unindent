@@ -81,61 +81,47 @@ inline std::ostream &operator<<(std::ostream &os, fixed_string<CharT, N> fs) {
 
 namespace details {
 // editor function for unindented string
-inline constexpr auto to_unindented =
-    []<typename CharT, std::size_t N>(std::array<CharT, N> raw) consteval {
-      namespace views = std::ranges::views;
-      using namespace std::literals;
-      using std::size_t;
-      auto str = std::basic_string_view<CharT>(raw.data());
+inline constexpr auto to_unindented = []<typename CharT, std::size_t N>(
+                                          std::array<CharT, N> raw) consteval {
+  namespace views = ::std::ranges::views;
+  namespace ranges = ::std::ranges;
+  using namespace std::literals;
 
-      while (str.ends_with(' '))
-        str.remove_suffix(1);
-      while (str.ends_with('\n'))
-        str.remove_suffix(1);
-      while (str.starts_with('\n'))
-        str.remove_prefix(1);
+  auto str = std::basic_string_view<CharT>(raw.data());
 
-      auto is_space = [](CharT c) { return c == ' '; };
-      auto is_not_empty = [](auto line) { return !line.empty(); };
+  while (str.starts_with('\n'))
+    str.remove_prefix(1);
+  while (str.ends_with(' ') or str.ends_with('\n'))
+    str.remove_suffix(1);
 
-      auto lines = str | views::split("\n"sv);
-      auto lines_without_empty = lines | views::filter(is_not_empty);
+  auto lines = str | views::split("\n"sv);
 
-      auto min_indent = std::numeric_limits<size_t>::max();
+  // clang-format off
+      auto indents
+        = lines
+        | views::filter([](auto line) { return !line.empty(); })
+        | views::transform([](auto line) {
+            return ranges::distance(
+              line | views::take_while([](CharT c) { return c == ' '; }));
+          });
+  // clang-format on
 
-      std::array<CharT, N> buffer = {};
-      size_t index = 0;
+  auto fn = [n = static_cast<std::size_t>(ranges::min(indents))](auto line) {
+    return line.size() >= n ? line | views::drop(n) : line;
+  };
 
-      for (auto line : lines_without_empty) {
-        auto iter = std::find_if_not(line.begin(), line.end(), is_space);
-        auto indent = static_cast<size_t>(std::distance(line.begin(), iter));
-        min_indent = std::min({min_indent, indent});
-      }
+  std::array<CharT, N> buffer = {};
+  std::size_t index = 0;
 
-      if (min_indent == std::numeric_limits<size_t>::max() || min_indent == 0) {
-        for (auto c : str) {
-          buffer[index++] = c;
-        }
-        return buffer;
-      }
-
-      auto fn = [min_indent](auto line) {
-        std::basic_string_view<CharT> line_view{line.begin(), line.end()};
-        if (line_view.size() < min_indent)
-          return line_view;
-        line_view.remove_prefix(min_indent);
-        return line_view;
-      };
-
-      for (auto line : lines | views::transform(fn)) {
-        for (auto c : line) {
-          buffer[index++] = c;
-        }
-        buffer[index++] = '\n';
-      }
-      buffer[index - 1] = '\0';
-      return buffer;
-    };
+  for (auto line : lines | views::transform(fn)) {
+    for (auto c : line) {
+      buffer[index++] = c;
+    }
+    buffer[index++] = '\n';
+  }
+  buffer[index - 1] = '\0';
+  return buffer;
+};
 
 // editor function for folded string
 inline constexpr auto to_folded =
