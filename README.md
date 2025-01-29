@@ -103,8 +103,10 @@ Returns `basic_string_view`.
 
 ### conparison operators
 
-`edited_string` and `std::string_view` can be compared.
+`edited_string` and `std::string_view` can be compared with each other.
 Also, `edited_string` and `edited_string` can be compared.
+
+`<=>`, `==`, `!=`, `<`, `>`, `<=`, `>=` are supported.
 
 ## Supported OS/Compiler
 

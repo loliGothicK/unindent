@@ -101,13 +101,13 @@ namespace details
         auto lines = str | views::split("\n"sv);
 
         // clang-format off
-      auto indents
-        = lines
-        | views::filter([](auto line) { return !line.empty(); })
-        | views::transform([](auto line) {
-            return std::ranges::distance(
-              line | views::take_while([](CharT c) { return c == ' '; }));
-          });
+        auto indents
+          = lines
+          | views::filter([](auto line) { return !line.empty(); })
+          | views::transform([](auto line) {
+              return std::ranges::distance(
+                line | views::take_while([](CharT c) { return c == ' '; }));
+            });
         // clang-format on
 
         std::size_t min = std::ranges::min(indents);
