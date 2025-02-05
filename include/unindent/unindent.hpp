@@ -204,6 +204,7 @@ template <fixed_string Lit, auto Editor>
 class [[nodiscard]] edited_string final
 {
   static constexpr decltype(Lit.s) value_ = Editor(Lit.s);
+  using Self = edited_string;
 
 public:
   // type members
@@ -211,85 +212,80 @@ public:
 
   // #region comparison operators
   constexpr inline friend std::strong_ordering
-  operator<=>(std::basic_string_view<char_type> lhs, const edited_string&) noexcept {
-    return lhs <=> edited_string::value();
+  operator<=>(std::basic_string_view<char_type> lhs, const Self&) noexcept {
+    return lhs <=> Self::value();
   }
 
   constexpr inline friend bool
-  operator!=(std::basic_string_view<char_type> lhs, const edited_string&) noexcept {
-    return lhs != edited_string::value();
+  operator!=(std::basic_string_view<char_type> lhs, const Self&) noexcept {
+    return lhs != Self::value();
   }
 
   constexpr inline friend bool
-  operator==(std::basic_string_view<char_type> lhs, const edited_string&) noexcept {
-    return lhs == edited_string::value();
+  operator==(std::basic_string_view<char_type> lhs, const Self&) noexcept {
+    return lhs == Self::value();
   }
 
   constexpr inline friend bool
-  operator<(std::basic_string_view<char_type> lhs, const edited_string&) noexcept {
-    return lhs < edited_string::value();
+  operator<(std::basic_string_view<char_type> lhs, const Self&) noexcept {
+    return lhs < Self::value();
   }
 
   constexpr inline friend bool
-  operator>(std::basic_string_view<char_type> lhs, const edited_string&) noexcept {
-    return lhs > edited_string::value();
+  operator>(std::basic_string_view<char_type> lhs, const Self&) noexcept {
+    return lhs > Self::value();
   }
 
-  constexpr inline friend std::strong_ordering operator<=>(
-      const edited_string&, std::basic_string_view<char_type> rhs
-  ) noexcept {
-    return edited_string::value() <=> rhs;
+  constexpr inline friend std::strong_ordering
+  operator<=>(const Self&, std::basic_string_view<char_type> rhs) noexcept {
+    return Self::value() <=> rhs;
   }
 
-  constexpr inline friend bool operator!=(
-      const edited_string&, std::basic_string_view<char_type> rhs
-  ) noexcept {
-    return edited_string::value() != rhs;
+  constexpr inline friend bool
+  operator!=(const Self&, std::basic_string_view<char_type> rhs) noexcept {
+    return Self::value() != rhs;
   }
 
-  constexpr inline friend bool operator==(
-      const edited_string&, std::basic_string_view<char_type> rhs
-  ) noexcept {
-    return edited_string::value() == rhs;
+  constexpr inline friend bool
+  operator==(const Self&, std::basic_string_view<char_type> rhs) noexcept {
+    return Self::value() == rhs;
   }
 
-  constexpr inline friend bool operator<(
-      const edited_string&, std::basic_string_view<char_type> rhs
-  ) noexcept {
-    return edited_string::value() < rhs;
+  constexpr inline friend bool
+  operator<(const Self&, std::basic_string_view<char_type> rhs) noexcept {
+    return Self::value() < rhs;
   }
 
-  constexpr inline friend bool operator>(
-      const edited_string&, std::basic_string_view<char_type> rhs
-  ) noexcept {
-    return edited_string::value() > rhs;
+  constexpr inline friend bool
+  operator>(const Self&, std::basic_string_view<char_type> rhs) noexcept {
+    return Self::value() > rhs;
   }
   // #endregion
 
   // iterator support
   constexpr auto begin() const noexcept {
-    return edited_string::value().begin();
+    return Self::value().begin();
   }
   constexpr auto end() const noexcept {
-    return edited_string::value().end();
+    return Self::value().end();
   }
   constexpr auto cbegin() const noexcept {
-    return edited_string::value().cbegin();
+    return Self::value().cbegin();
   }
   constexpr auto cend() const noexcept {
-    return edited_string::value().cend();
+    return Self::value().cend();
   }
   constexpr auto rbegin() const noexcept {
-    return edited_string::value().rbegin();
+    return Self::value().rbegin();
   }
   constexpr auto rend() const noexcept {
-    return edited_string::value().rend();
+    return Self::value().rend();
   }
   constexpr auto crbegin() const noexcept {
-    return edited_string::value().crbegin();
+    return Self::value().crbegin();
   }
   constexpr auto crend() const noexcept {
-    return edited_string::value().crend();
+    return Self::value().crend();
   }
 
   // static member function
@@ -298,11 +294,38 @@ public:
     return std::basic_string_view<char_type>(value_.data());
   }
 
-  // format with args
+  // Returns formatted string with `std::format`
+  //
+  // `s.format(args...)` is same as `std::format(s.to_str(), args...)`.
+  //
+  // Example:
+  // ```cpp
+  //  constexpr auto fmt = R"(
+  //    def foo():
+  //      print("Hello")
+  //      print("{}")
+  //  )"_i;
+  //
+  //  std::cout << fmt.format("World");
+  //  // Output:
+  //  // def foo():
+  //  //   print("Hello")
+  //  //   print("World")
+  // ```
   auto format(auto&&... args) const {
     return std::format(value(), std::forward<decltype(args)>(args)...);
   }
 
+  // Returns basic_string_view<char_type> of the edited string
+  //
+  // Example:
+  // ```cpp
+  //  constexpr std::string_view str = R"(
+  //    def foo():
+  //      print("Hello")
+  //      print("World")
+  //  )"_i.to_str();
+  //```
   constexpr std::basic_string_view<char_type> to_str() const {
     return value();
   }
@@ -377,7 +400,7 @@ namespace mitama::unindent::inline literals
 // indent-adjunsted multiline string literal
 // This literal operator returns an indent-adjunsted string.
 //
-// Usage:
+// Example:
 // ```cpp
 //  constexpr std::string_view unindented_str = R"(
 //    def foo():
@@ -400,7 +423,7 @@ operator""_i() {
 // folded multiline string literal
 // This literal operator returns a folded string.
 //
-// Usage:
+// Example:
 // ```cpp
 //  constexpr std::string_view folded_str = R"(
 //    cmake
