@@ -12,29 +12,21 @@ jobs:
       fail-fast: false
       matrix:
         compiler:
-          - cc: clang
-            cxx: clang++
+          - cxx: clang++
             ver: 17
             os: ubuntu-24.04
-          - cc: clang
-            cxx: clang++
+          - cxx: clang++
             ver: 18
             os: ubuntu-24.04
-          - cc: clang
-            cxx: clang++
+          - cxx: clang++
             ver: 19
             os: ubuntu-24.04
-          - cc: gcc
-            cxx: g++
+          - cxx: g++
             ver: 13
             os: ubuntu-24.04
-          - cc: gcc
-            cxx: g++
+          - cxx: g++
             ver: 14
             os: ubuntu-24.04
-    env:
-      CC: ${{ matrix.compiler.cc }}-${{ matrix.compiler.ver }}
-      CXX: ${{ matrix.compiler.cxx }}-${{ matrix.compiler.ver }}
     steps:
       - uses: actions/checkout@v4
 
@@ -54,58 +46,77 @@ jobs:
         if: matrix.compiler.cxx == 'g++' && matrix.compiler.ver == 14
         run: sudo apt update && sudo apt install -y gcc-14
 
+      - name: Cache Catch2
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: $VCPKG_INSTALLATION_ROOT/installed
+          key: ${{ runner.os }}-
+
       - name: Install Catch2
+        if: steps.cache.outputs.cache-hit != 'true'
         run: vcpkg install catch2
 
       - name: Build and test
         run: |
           cmake -S . -B build \
             -DBUILD_TESTING=ON \
+            -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }}-${{ matrix.compiler.ver }} \
             -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
           cmake --build build
           cd build && ctest
 
   windows:
-    runs-on: windows-${{ matrix.config.osver }}
+    runs-on: windows-${{ matrix.config.os }}
     strategy:
       fail-fast: false
       matrix:
         config:
-          - vsver: "Visual Studio 17 2022"
-            osver: 2025
-          - vsver: "Visual Studio 17 2022"
-            osver: 2022
-          - vsver: "Visual Studio 17 2022"
-            osver: 2019
+          - vs: "Visual Studio 17 2022"
+            os: 2025
+          - vs: "Visual Studio 17 2022"
+            os: 2022
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cache Catch2
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: $VCPKG_INSTALLATION_ROOT/installed
+          key: ${{ runner.os }}-
+
       - name: Install Catch2
+        if: steps.cache.outputs.cache-hit != 'true'
         run: vcpkg install catch2
 
       - name: Build and test
         run: |
           cmake -S . -B build `
-            -G "${{ matrix.config.vsver }}" -A x64 `
+            -G "${{ matrix.config.vs }}" -A x64 `
             -DBUILD_TESTING=ON `
             -DCMAKE_TOOLCHAIN_FILE="$($env:VCPKG_INSTALLATION_ROOT)/scripts/buildsystems/vcpkg.cmake"
           cmake --build build
           cd build && ctest
 
   macos:
-    runs-on: macos-${{ matrix.env.osver }}
+    runs-on: macos-15
     strategy:
       fail-fast: false
       matrix:
-        env:
-          - cxx: clang++
-            osver: 15
-          - cxx: "$(brew --prefix llvm@18)/bin/clang++"
-            osver: 15
+        cxx: ["clang++", "$(brew --prefix llvm@18)/bin/clang++"]
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cache Catch2
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: ~/vcpkg/installed
+          key: ${{ runner.os }}-
+
       - name: Install vcpkg
+        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           cd ~
           git clone https://github.com/microsoft/vcpkg
@@ -117,7 +128,7 @@ jobs:
         run: |
           cmake -S . -B build \
             -DBUILD_TESTING=ON \
-            -DCMAKE_CXX_COMPILER=${{ matrix.env.cxx }} \
+            -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} \
             -DCMAKE_TOOLCHAIN_FILE="~/vcpkg/scripts/buildsystems/vcpkg.cmake"
           cmake --build build
           cd build && ctest

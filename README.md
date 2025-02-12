@@ -145,6 +145,8 @@ class [[nodiscard]] edited_string {
 
 ### Principals
 
+This part explain the design principles of the [P0732R2](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2018/p0732r2.pdf).
+
 - Note 1: `fixed_string` is initialized with a string literals. In addition, due to CTAD (Class Template Argument Deduction), `CharT` and `N` is automatically deduced.
   
   ```cpp
@@ -177,7 +179,7 @@ class [[nodiscard]] edited_string {
   - GCC: 13, 14
   - Clang: 17, 18, 19
 - Apple
-  - Apple Clang 15.0.0 (macOS 15)
-  - Apple Clang 18.1.8 (macOS 15)
+  - Apple Clang 15.0.0 (on macOS 15)
+  - Apple Clang 18.1.8 (on macOS 15)
 - Windows
-  - MSVC: Visual Studio 2022
+  - MSVC: Visual Studio 17 2022 (on Windows Server 2022 and 2025)
