@@ -17,18 +17,17 @@
 
 namespace mitama::unindent
 {
-// fixed_string (structural type)
-// This is a class representing a string literal.
+// This is a structural type representing a fixed string.
 //
 // template parameters:
 // - `CharT`: a character type of the string literal.
 // - `N`: The non-type template parameter, the size of the string literal.
 //
-// [Note 1: `fixed_string` is initialized with a string literals.
+// [Note 1: `basic_fixed_string` is initialized with a string literals.
 // In addition, due to CTAD (Class Template Argument Deduction), `CharT` and `N`
 // is automatically deduced. [Example:
 //   ```
-//   constexpr fixed_string fs = "abc"; // fixed_string<char, 4>
+//   constexpr basic_fixed_string fs = "abc"; // basic_fixed_string<char, 4>
 //   ```
 // — end example]
 //
@@ -39,25 +38,25 @@ namespace mitama::unindent
 // [Note 2: Since C++20, `fixed_string` can be used as non-type template
 // arguments with CTAD. [Example:
 //   ```
-//   template <fixed_string S>
+//   template <basic_fixed_string S>
 //   struct foo {};
 //
-//   foo<"abc"> f; // foo<fixed_string<char, 4>{"abc"}>
+//   foo<"abc"> f; // foo<basic_fixed_string<char, 4>{"abc"}>
 //   ```
 // — end example]
 //
 // ref: https://timsong-cpp.github.io/cppwp/n4861/temp.arg.nontype#1
 // — end note]
 //
-// [Note 3: Since C++20, `fixed_string` can be used as a template parameter
+// [Note 3: Since C++20, structural type can be used as a template parameter
 // of a user-defined literals. [Example:
 //   ```
-//   template <fixed_string S>
+//   template <basic_fixed_string S>
 //   inline constexpr auto operator""_fixed() {
 //     return S;
 //   }
 //
-//   "abc"_fixed; // fixed_string<char, 4>{"abc"}
+//   "abc"_fixed; // operator""_fixed<"abc">()
 //   ```
 // — end example]
 //
@@ -75,6 +74,10 @@ struct basic_fixed_string
         }(std::make_index_sequence<N + 1>{}) } {}
 
   auto operator<=>(const basic_fixed_string&) const = default;
+
+  constexpr auto to_str() const {
+    return std::basic_string_view<CharT>(data.data());
+  }
 
   const std::array<CharT, N + 1> data;
 };
