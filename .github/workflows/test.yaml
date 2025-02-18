@@ -32,11 +32,11 @@ jobs:
 
       - name: extract vcpkg revision
         id: vcpkg-revision
-        run: |
-          cat ./vcpkg.json \
-            | jq '.["builtin-baseline"]' \
-            | xargs -I {} echo "builtin-baseline={}" \
-            >> $GITHUB_OUTPUT
+        run: >
+          cat ./vcpkg.json
+          | jq '.["builtin-baseline"]'
+          | xargs -I {} echo "builtin-baseline={}"
+          >> $GITHUB_OUTPUT
 
       - name: Install CMake
         run: |
@@ -68,9 +68,8 @@ jobs:
 
       - name: Build and test
         run: |
-          cmake -S . -B build \
+          cmake -S . -B build -DBUILD_TESTING=ON \
             ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} \
-            -DBUILD_TESTING=ON \
             -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }}-${{ matrix.compiler.ver }}
           cmake --build build
           cd build && ctest
@@ -90,11 +89,11 @@ jobs:
 
       - name: extract vcpkg revision
         id: vcpkg-revision
-        run: |
-          cat ./vcpkg.json `
-            | jq '.["builtin-baseline"]' `
-            | % { echo "builtin-baseline=$_" } `
-            | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+        run: >
+          cat ./vcpkg.json
+          | jq '.["builtin-baseline"]'
+          | % { echo "builtin-baseline=$_" }
+          | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: vcpkg build
         uses: johnwason/vcpkg-action@v6
@@ -130,11 +129,11 @@ jobs:
 
       - name: extract vcpkg revision
         id: vcpkg-revision
-        run: |
-          cat ./vcpkg.json \
-            | jq '.["builtin-baseline"]' \
-            | xargs -I {} echo "builtin-baseline={}" \
-            >> $GITHUB_OUTPUT
+        run: >
+          cat ./vcpkg.json
+          | jq '.["builtin-baseline"]'
+          | xargs -I {} echo "builtin-baseline={}"
+          >> $GITHUB_OUTPUT
 
       - name: vcpkg build
         id: vcpkg
@@ -150,9 +149,8 @@ jobs:
 
       - name: Build and test
         run: |
-          cmake -S . -B build \
+          cmake -S . -B build -DBUILD_TESTING=ON \
             ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} \
-            -DBUILD_TESTING=ON \
             -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
           cmake --build build
           cd build && ctest
