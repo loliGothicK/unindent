@@ -75,7 +75,7 @@ struct basic_fixed_string
 
   auto operator<=>(const basic_fixed_string&) const = default;
 
-  constexpr auto to_str() const {
+  [[nodiscard]] constexpr auto to_str() const {
     return std::basic_string_view<CharT>(data.data());
   }
 
@@ -343,7 +343,7 @@ public:
   //      print("World")
   //  )"_i.to_str();
   //```
-  constexpr std::basic_string_view<char_type> to_str() const {
+  [[nodiscard]] constexpr std::basic_string_view<char_type> to_str() const {
     return value();
   }
 };

@@ -30,6 +30,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: extract vcpkg revision
+        id: vcpkg-revision
+        run: |
+          cat ./vcpkg.json \
+            | jq '.["builtin-baseline"]' \
+            | xargs -I {} echo "builtin-baseline={}" \
+            >> $GITHUB_OUTPUT
+
       - name: Install CMake
         run: |
           sudo apt-get -qq update
@@ -46,23 +54,24 @@ jobs:
         if: matrix.compiler.cxx == 'g++' && matrix.compiler.ver == 14
         run: sudo apt update && sudo apt install -y gcc-14
 
-      - name: Cache Catch2
-        id: cache
-        uses: actions/cache@v4
+      - name: vcpkg build
+        uses: johnwason/vcpkg-action@v6
+        id: vcpkg
         with:
-          path: $VCPKG_INSTALLATION_ROOT/installed
-          key: ${{ runner.os }}-
-
-      - name: Install Catch2
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: vcpkg install catch2
+          manifest-dir: ${{ github.workspace }}
+          triplet: x64-linux-release
+          revision: ${{ steps.vcpkg-revision.outputs.builtin-baseline }}
+          extra-args: --x-feature=tests
+          token: ${{ github.token }}
+          cache-key: linux-${{ matrix.compiler.cxx }}-${{ matrix.compiler.ver }}
+          github-binarycache: true
 
       - name: Build and test
         run: |
           cmake -S . -B build \
+            ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} \
             -DBUILD_TESTING=ON \
-            -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }}-${{ matrix.compiler.ver }} \
-            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+            -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }}-${{ matrix.compiler.ver }}
           cmake --build build
           cd build && ctest
 
@@ -79,23 +88,34 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Cache Catch2
-        id: cache
-        uses: actions/cache@v4
-        with:
-          path: $VCPKG_INSTALLATION_ROOT/installed
-          key: ${{ runner.os }}-
+      - name: extract vcpkg revision
+        id: vcpkg-revision
+        run: |
+          cat ./vcpkg.json `
+            | jq '.["builtin-baseline"]' `
+            | % { echo "builtin-baseline=$_" } `
+            | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
-      - name: Install Catch2
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: vcpkg install catch2
+      - name: vcpkg build
+        uses: johnwason/vcpkg-action@v6
+        id: vcpkg
+        with:
+          manifest-dir: ${{ github.workspace }}
+          triplet: x64-windows
+          revision: ${{ steps.vcpkg-revision.outputs.builtin-baseline }}
+          extra-args: --x-feature=tests
+          token: ${{ github.token }}
+          cache-key: windows-${{ matrix.config.vs }}
+          github-binarycache: true
 
       - name: Build and test
         run: |
+          $ErrorActionPreference = "Stop"
+          Set-StrictMode -Version Latest
           cmake -S . -B build `
+            ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} `
             -G "${{ matrix.config.vs }}" -A x64 `
-            -DBUILD_TESTING=ON `
-            -DCMAKE_TOOLCHAIN_FILE="$($env:VCPKG_INSTALLATION_ROOT)/scripts/buildsystems/vcpkg.cmake"
+            -DBUILD_TESTING=ON
           cmake --build build
           cd build && ctest
 
@@ -108,27 +128,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Cache Catch2
-        id: cache
-        uses: actions/cache@v4
-        with:
-          path: ~/vcpkg/installed
-          key: ${{ runner.os }}-
-
-      - name: Install vcpkg
-        if: steps.cache.outputs.cache-hit != 'true'
+      - name: extract vcpkg revision
+        id: vcpkg-revision
         run: |
-          cd ~
-          git clone https://github.com/microsoft/vcpkg
-          cd vcpkg
-          ./bootstrap-vcpkg.sh
-          ./vcpkg install catch2
+          cat ./vcpkg.json \
+            | jq '.["builtin-baseline"]' \
+            | xargs -I {} echo "builtin-baseline={}" \
+            >> $GITHUB_OUTPUT
+
+      - name: vcpkg build
+        id: vcpkg
+        uses: johnwason/vcpkg-action@v6
+        with:
+          manifest-dir: ${{ github.workspace }}
+          triplet: arm64-osx-release
+          extra-args: --x-feature=tests
+          revision: ${{ steps.vcpkg-revision.outputs.builtin-baseline }}
+          token: ${{ github.token }}
+          cache-key: macos-${{ matrix.cxx }}
+          github-binarycache: true
 
       - name: Build and test
         run: |
           cmake -S . -B build \
+            ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} \
             -DBUILD_TESTING=ON \
-            -DCMAKE_CXX_COMPILER=${{ matrix.cxx }} \
-            -DCMAKE_TOOLCHAIN_FILE="~/vcpkg/scripts/buildsystems/vcpkg.cmake"
+            -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
           cmake --build build
           cd build && ctest

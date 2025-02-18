@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.30)
 
+option(BUILD_TESTING "Do not build tests by default" OFF)
+if(BUILD_TESTING)
+  list(APPEND VCPKG_MANIFEST_FEATURES "tests")
+endif()
+
 project(unindent
   VERSION 0.5.0
   LANGUAGES CXX
@@ -38,8 +43,7 @@ install(FILES ${CONFIG_VERSION_FILE}
   DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/${PROJECT_NAME}
 )
 
-option(BUILD_TESTING "Do not build tests by default" OFF)
-include(CTest)
 if(BUILD_TESTING AND ${CMAKE_SOURCE_DIR} STREQUAL ${PROJECT_SOURCE_DIR})
   add_subdirectory(tests)
+  include(CTest)
 endif()
