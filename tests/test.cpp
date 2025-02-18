@@ -6,10 +6,10 @@
 #include <unindent/unindent.hpp>
 
 TEST_CASE("CTAD#1", "[fixed_string]") {
-  [[maybe_unused]] constexpr mitama::unindent::fixed_string _ = "abc";
+  [[maybe_unused]] constexpr mitama::unindent::basic_fixed_string _ = "abc";
 }
 
-template <mitama::unindent::fixed_string S>
+template <mitama::unindent::basic_fixed_string S>
 struct foo
 {};
 
@@ -127,5 +127,27 @@ TEST_CASE("iterator#1", "[folded]") {
     second
   )"_i1;
 
-  REQUIRE(std::ranges::equal(folded_str, "first second"sv));
+  static_assert(folded_str == "first second"sv);
+}
+
+TEST_CASE("iv#1", "[unindented]") {
+  using namespace std::literals;
+  using namespace mitama::unindent::literals;
+  constexpr auto sv = R"(
+    first
+    second
+  )"_iv;
+
+  static_assert(sv == "first\nsecond"sv);
+}
+
+TEST_CASE("i1v#1", "[folded]") {
+  using namespace std::literals;
+  using namespace mitama::unindent::literals;
+  constexpr auto sv = R"(
+    first
+    second
+  )"_i1v;
+
+  static_assert(sv == "first second"sv);
 }
