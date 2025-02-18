@@ -6,10 +6,10 @@
 #include <unindent/unindent.hpp>
 
 TEST_CASE("CTAD#1", "[fixed_string]") {
-  [[maybe_unused]] constexpr mitama::unindent::fixed_string _ = "abc";
+  [[maybe_unused]] constexpr mitama::unindent::basic_fixed_string _ = "abc";
 }
 
-template <mitama::unindent::fixed_string S>
+template <mitama::unindent::basic_fixed_string S>
 struct foo
 {};
 
