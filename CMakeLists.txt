@@ -6,7 +6,7 @@ if(BUILD_TESTING)
 endif()
 
 project(unindent
-  VERSION 0.5.0
+  VERSION 1.0.0
   LANGUAGES CXX
 )
 
