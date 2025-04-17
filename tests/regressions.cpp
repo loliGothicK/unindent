@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
+
 #include <iostream>
 #include <string_view>
-
 #include <unindent/unindent.hpp>
 
 TEST_CASE("issue#1", "[unindent]") {
@@ -12,8 +12,9 @@ TEST_CASE("issue#1", "[unindent]") {
       print("Hello")
 
       print("World")
-  )"_i;
+  )"_i.to_str();
 
-  static_assert(unindented_str ==
-                "def foo():\n  print(\"Hello\")\n\n  print(\"World\")"sv);
+  static_assert(
+      unindented_str == "def foo():\n  print(\"Hello\")\n\n  print(\"World\")"sv
+  );
 }

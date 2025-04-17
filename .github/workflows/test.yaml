@@ -12,39 +12,31 @@ jobs:
       fail-fast: false
       matrix:
         compiler:
-          - cc: clang
-            cxx: clang++
-            ver: 16
-            os: ubuntu-22.04
-          - cc: clang
-            cxx: clang++
+          - cxx: clang++
             ver: 17
             os: ubuntu-24.04
-          - cc: clang
-            cxx: clang++
+          - cxx: clang++
             ver: 18
             os: ubuntu-24.04
-          - cc: clang
-            cxx: clang++
+          - cxx: clang++
             ver: 19
             os: ubuntu-24.04
-          - cc: gcc
-            cxx: g++
-            ver: 12
-            os: ubuntu-24.04
-          - cc: gcc
-            cxx: g++
+          - cxx: g++
             ver: 13
             os: ubuntu-24.04
-          - cc: gcc
-            cxx: g++
+          - cxx: g++
             ver: 14
             os: ubuntu-24.04
-    env:
-      CC: ${{ matrix.compiler.cc }}-${{ matrix.compiler.ver }}
-      CXX: ${{ matrix.compiler.cxx }}-${{ matrix.compiler.ver }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: extract vcpkg revision
+        id: vcpkg-revision
+        run: >
+          cat ./vcpkg.json
+          | jq '.["builtin-baseline"]'
+          | xargs -I {} echo "builtin-baseline={}"
+          >> $GITHUB_OUTPUT
 
       - name: Install CMake
         run: |
@@ -62,38 +54,132 @@ jobs:
         if: matrix.compiler.cxx == 'g++' && matrix.compiler.ver == 14
         run: sudo apt update && sudo apt install -y gcc-14
 
-      - name: Install Catch2
-        run: vcpkg install catch2
+      - name: vcpkg build
+        uses: johnwason/vcpkg-action@v6
+        id: vcpkg
+        with:
+          manifest-dir: ${{ github.workspace }}
+          triplet: x64-linux-release
+          revision: ${{ steps.vcpkg-revision.outputs.builtin-baseline }}
+          token: ${{ github.token }}
+
+      - name: Cache build artifacts
+        id: cache-build
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/build
+          key: |
+            build-${{ runner.os }}-${{ matrix.compiler.cxx }}-${{ matrix.compiler.ver }}-${{ hashFiles('vcpkg.json') }}
+            build-${{ runner.os }}-${{ matrix.compiler.cxx }}-${{ matrix.compiler.ver }}-
+
+      - name: CMake configure
+        if: steps.cache-build.outputs.cache-hit != 'true'
+        run: >
+          cmake -S . -B build -DBUILD_TESTING=ON
+          $(echo ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} | sed 's/-DVCPKG_MANIFEST_MODE=OFF//')
+          -DCMAKE_CXX_COMPILER=${{ matrix.compiler.cxx }}-${{ matrix.compiler.ver }}
 
       - name: Build and test
-        run: |
-          mkdir build && cd build
-          cmake .. \
-            -DBUILD_TESTING=ON \
-            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
-          make
-          make test
+        run: cmake --build build && cd build && ctest
 
-  macos:
-    runs-on: macos-${{ matrix.osver }}
+  windows:
+    runs-on: windows-${{ matrix.config.os }}
     strategy:
       fail-fast: false
       matrix:
-        osver: [13]
+        config:
+          - vs: "Visual Studio 17 2022"
+            os: 2025
+          - vs: "Visual Studio 17 2022"
+            os: 2022
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install CMake
-        run: brew install pkg-config cmake
+      - name: extract vcpkg revision
+        id: vcpkg-revision
+        run: >
+          cat ./vcpkg.json
+          | jq '.["builtin-baseline"]'
+          | % { echo "builtin-baseline=$_" }
+          | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
-      - name: Install Catch2
-        run: vcpkg install catch2
+      - name: vcpkg build
+        uses: johnwason/vcpkg-action@v6
+        id: vcpkg
+        with:
+          manifest-dir: ${{ github.workspace }}
+          triplet: x64-windows
+          revision: ${{ steps.vcpkg-revision.outputs.builtin-baseline }}
+          token: ${{ github.token }}
+
+      - name: Cache build artifacts
+        id: cache-build
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/build
+          key: |
+            build-${{ runner.os }}-${{ matrix.config.vs }}-${{ hashFiles('vcpkg.json') }}
+            build-${{ runner.os }}-${{ matrix.config.vs }}-
+  
+      - name: CMake configure
+        if: steps.cache-build.outputs.cache-hit != 'true'
+        run: >
+          cmake -S . -B build
+          -DBUILD_TESTING=ON
+          -G "${{ matrix.config.vs }}"
+          -A x64
+          -DVCPKG_TARGET_TRIPLET=x64-windows
+          $('${{ steps.vcpkg.outputs.vcpkg-cmake-config }}' -split ' ' | Where-Object { $_ -like '-DCMAKE_TOOLCHAIN_FILE=*' })
 
       - name: Build and test
         run: |
-          mkdir build && cd build
-          cmake .. \
-            -DBUILD_TESTING=ON \
-            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
-          make
-          make test
+          $ErrorActionPreference = "Stop"
+          Set-StrictMode -Version Latest
+          cmake --build build
+          cd build && ctest
+
+  macos:
+    runs-on: macos-15
+    strategy:
+      fail-fast: false
+      matrix:
+        cxx: ["clang++", "$(brew --prefix llvm@18)/bin/clang++"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: extract vcpkg revision
+        id: vcpkg-revision
+        run: >
+          cat ./vcpkg.json
+          | jq '.["builtin-baseline"]'
+          | xargs -I {} echo "builtin-baseline={}"
+          >> $GITHUB_OUTPUT
+
+      - name: vcpkg build
+        id: vcpkg
+        uses: johnwason/vcpkg-action@v6
+        with:
+          manifest-dir: ${{ github.workspace }}
+          triplet: arm64-osx-release
+          revision: ${{ steps.vcpkg-revision.outputs.builtin-baseline }}
+          token: ${{ github.token }}
+
+      - name: Cache build artifacts
+        id: cache-build
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/build
+          key: |
+            build-${{ runner.os }}-${{ matrix.cxx }}-${{ hashFiles('vcpkg.json') }}
+            build-${{ runner.os }}-${{ matrix.cxx }}-
+
+      - name: CMake configure
+        if: steps.cache-build.outputs.cache-hit != 'true'
+        run: >
+          cmake -S . -B build
+          $(echo ${{ steps.vcpkg.outputs.vcpkg-cmake-config }} | sed 's/-DVCPKG_MANIFEST_MODE=OFF//')
+          -DBUILD_TESTING=ON
+          -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
+
+      - name: Build and test
+        run: cmake --build build && cd build && ctest

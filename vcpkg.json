@@ -1,0 +1,13 @@
+{
+    "name": "unindent",
+    "version": "1.0.0",
+    "builtin-baseline": "a8c72cf66b94948b7dfcb41c6106a11260a8b3b2",
+    "features": {
+        "tests": {
+            "description": "Build tests",
+            "dependencies": [
+                { "name": "catch2", "version>=": "3.8.0" }
+            ]
+        }
+    }
+}

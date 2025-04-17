@@ -5,10 +5,33 @@ default_to_workspace = false
 [env]
 REPOSITORY_ROOT = { script = [ "git rev-parse --show-superproject-working-tree --show-toplevel" ] }
 
-[tasks.test]
+[tasks.windows_build]
 script_runner = "@shell"
+condition = { env_set = ["VCPKG_INSTALLATION_ROOT", "CMAKE_GENERATOR"] }
+script = '''
+    cmake -B build -S . -DBUILD_TESTING=ON -G "${CMAKE_GENERATOR}" -A x64 -DCMAKE_TOOLCHAIN_FILE=${VCPKG_INSTALLATION_ROOT}/scripts/buildsystems/vcpkg.cmake
+    cmake --build build
+'''
+
+[tasks.other_build]
+script_runner = "@shell"
+condition = { env_set = ["VCPKG_INSTALLATION_ROOT", "CXX"] }
 script = [
-    "cd build",
-    "make",
-    "make test",
+    "cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_CXX_COMPILER=${CXX} -DCMAKE_TOOLCHAIN_FILE=${VCPKG_INSTALLATION_ROOT}/scripts/buildsystems/vcpkg.cmake",
+    "cmake --build build",
+]
+
+[tasks.build]
+windows_alias = "windows_build"
+alias = "other_build"
+
+[tasks.ctest]
+script_runner = "@shell"
+cwd = "build"
+script = "ctest"
+
+[tasks.test]
+dependencies = [
+    "build",
+    "ctest",
 ]
