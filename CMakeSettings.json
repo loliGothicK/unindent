@@ -1,4 +1,4 @@
-﻿{
+{
   "configurations": [
     {
       "name": "x64-Debug",
@@ -8,8 +8,9 @@
       "buildRoot": "${projectDir}\\out\\build\\${name}",
       "installRoot": "${projectDir}\\out\\install\\${name}",
       "cmakeCommandArgs": "-DBUILD_TESTING=ON",
-      "buildCommandArgs": "",
-      "ctestCommandArgs": ""
+      "buildCommandArgs": "-G \"Visual Studio 17 2022\"",
+      "ctestCommandArgs": "",
+      "cmakeToolchain": "D:/workspace/vcpkg/scripts/buildsystems/vcpkg.cmake"
     }
   ]
 }

@@ -2,3 +2,5 @@
 cabin.lock
 /build
 /.vscode
+/.vs
+/out/build/x64-Debug

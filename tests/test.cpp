@@ -47,8 +47,8 @@ TEST_CASE("folded#1", "[folded]") {
       "This is the first line. This line is appended to the first.\nThis line follows a line break.   This line ends up indented by two spaces."sv);
 }
 
-// comprison between unindented and folded
-TEST_CASE("comprisons#1", "[unindented]") {
+// comparison between unindented and folded
+TEST_CASE("comparisons#1", "[unindented]") {
   using namespace std::literals;
   using namespace mitama::unindent::literals;
   constexpr auto unindented_str = R"(
@@ -66,8 +66,8 @@ TEST_CASE("comprisons#1", "[unindented]") {
   static_assert(unindented_str <=> folded_str != std::strong_ordering::equal);
 }
 
-// comprison between unindented and strings
-TEST_CASE("comprisons#2", "[unindented]") {
+// comparison between unindented and strings
+TEST_CASE("comparisons#2", "[unindented]") {
   using namespace std::literals;
   using namespace mitama::unindent::literals;
   constexpr auto unindented_str = R"(

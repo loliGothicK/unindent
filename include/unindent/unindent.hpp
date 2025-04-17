@@ -140,7 +140,7 @@ namespace details
           }
           buffer[index++] = '\n';
         }
-        buffer[index - 1] = '\0';
+        buffer[std::min({ index - 1, N - 1 })] = '\0';
         return buffer;
       };
 
@@ -186,7 +186,7 @@ namespace details
 // to edit the original string.
 //
 // [Note: `Editor` is a CPO (Customization Point Object) that is a function
-// object. The function object must be a immidiate function object that
+// object. The function object must be a immediate function object that
 // satisfies the following requirements:
 //
 //  ```
@@ -423,8 +423,8 @@ inline constexpr auto folded =
 
 namespace mitama::unindent::inline literals
 {
-// indent-adjunsted multiline string literal
-// This literal operator returns an indent-adjunsted string.
+// indent-adjusted multiline string literal
+// This literal operator returns an indent-adjusted string.
 //
 // Example:
 // ```cpp
@@ -446,8 +446,8 @@ operator""_iv() {
   return unindented<S>.to_str();
 }
 
-// indent-adjunsted multiline string literal
-// This literal operator returns an indent-adjunsted string.
+// indent-adjusted multiline string literal
+// This literal operator returns an indent-adjusted string.
 //
 // Example:
 // ```cpp
