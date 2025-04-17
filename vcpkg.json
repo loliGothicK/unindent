@@ -1,7 +1,7 @@
 {
   "name": "unindent",
   "version": "1.0.0",
-  "builtin-baseline": "7cd46ec6873c1325b541a068c8e4cdf54633dabe",
+  "builtin-baseline": "a8c72cf66b94948b7dfcb41c6106a11260a8b3b2",
   "features": {
     "tests": {
       "description": "Build tests",
