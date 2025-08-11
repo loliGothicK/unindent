@@ -28,7 +28,7 @@ jobs:
             ver: 14
             os: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: extract vcpkg revision
         id: vcpkg-revision
@@ -93,7 +93,7 @@ jobs:
           - vs: "Visual Studio 17 2022"
             os: 2022
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: extract vcpkg revision
         id: vcpkg-revision
@@ -145,7 +145,7 @@ jobs:
       matrix:
         cxx: ["clang++", "$(brew --prefix llvm@18)/bin/clang++"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: extract vcpkg revision
         id: vcpkg-revision
